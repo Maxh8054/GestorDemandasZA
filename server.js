@@ -1,4 +1,4 @@
-// server.js - Versão Corrigida
+// server.js - Versão Completa com Suporte às Novas Funcionalidades
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
@@ -170,6 +170,29 @@ function criarTabelaFeedbacks() {
         if (err) console.error('Erro ao criar tabela feedbacks:', err);
         else {
             console.log('✅ Tabela feedbacks criada/verificada');
+            criarTabelaAnotacoes();
+        }
+    });
+}
+
+// Tabela de anotações
+function criarTabelaAnotacoes() {
+    db.run(`
+        CREATE TABLE IF NOT EXISTS anotacoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            conteudo TEXT NOT NULL,
+            cor TEXT DEFAULT '#3498db',
+            dataCriacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            criadoPor INTEGER NOT NULL,
+            atribuidoA INTEGER,
+            audioData TEXT,
+            atualizadoEm TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    `, (err) => {
+        if (err) console.error('Erro ao criar tabela anotacoes:', err);
+        else {
+            console.log('✅ Tabela anotacoes criada/verificada');
             inserirUsuariosPadrao();
         }
     });
@@ -224,7 +247,7 @@ function inserirUsuariosPadrao() {
     });
 }
 
-// Função para normalizar dados da demanda (mantida do primeiro server.js)
+// Função para normalizar dados da demanda
 function normalizarDadosDemanda(demanda) {
     if (!demanda) return demanda;
 
@@ -346,7 +369,7 @@ app.get('/health', (req, res) => {
 
 // GET /api/demandas - Listar demandas
 app.get('/api/demandas', (req, res) => {
-    const { status, funcionarioId, categoria, prioridade } = req.query;
+    const { status, funcionarioId, categoria, prioridade, month, year } = req.query;
     
     let sql = 'SELECT * FROM demandas WHERE 1=1';
     const params = [];
@@ -369,6 +392,20 @@ app.get('/api/demandas', (req, res) => {
     if (prioridade) {
         sql += ' AND prioridade = ?';
         params.push(prioridade);
+    }
+    
+    // Filtros de mês e ano
+    if (month || year) {
+        if (month && year) {
+            sql += ' AND strftime("%m", dataCriacao) = ? AND strftime("%Y", dataCriacao) = ?';
+            params.push(month.padStart(2, '0'), year);
+        } else if (month) {
+            sql += ' AND strftime("%m", dataCriacao) = ?';
+            params.push(month.padStart(2, '0'));
+        } else if (year) {
+            sql += ' AND strftime("%Y", dataCriacao) = ?';
+            params.push(year);
+        }
     }
     
     sql += ' ORDER BY dataCriacao DESC';
@@ -590,6 +627,178 @@ app.delete('/api/demandas/:id', (req, res) => {
     });
 });
 
+// POST /api/demandas/:id/extend-deadline - Estender prazo de demanda
+app.post('/api/demandas/:id/extend-deadline', (req, res) => {
+    const id = req.params.id;
+    const { novaDataLimite, motivo } = req.body;
+    
+    if (!novaDataLimite || !motivo) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Nova data limite e motivo são obrigatórios' 
+        });
+    }
+    
+    // Buscar demanda existente
+    db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaExistente) => {
+        if (err) {
+            console.error('Erro ao buscar demanda:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        if (!demandaExistente) {
+            return res.status(404).json({ success: false, error: 'Demanda não encontrada' });
+        }
+        
+        // Atualizar apenas os campos necessários
+        const sql = `
+            UPDATE demandas SET
+            dataLimite = ?,
+            comentarioGestor = ?,
+            dataAtualizacao = ?
+            WHERE id = ?
+        `;
+        
+        const comentarioAtual = demandaExistente.comentarioGestor || '';
+        const novoComentario = `${comentarioAtual}\n[Prazo estendido em ${new Date().toLocaleDateString('pt-BR')}: ${motivo}]`;
+        
+        db.run(sql, [novaDataLimite, novoComentario, new Date().toISOString(), id], function(err) {
+            if (err) {
+                console.error('Erro ao estender prazo da demanda:', err);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            // Registrar auditoria
+            registrarAuditoria(
+                'EXTEND_DEADLINE',
+                'demandas',
+                id,
+                { dataLimite: demandaExistente.dataLimite, comentarioGestor: demandaExistente.comentarioGestor },
+                { dataLimite: novaDataLimite, comentarioGestor: novoComentario },
+                req.body.usuarioId || null,
+                req.ip
+            );
+            
+            // Buscar demanda atualizada para retornar
+            db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaAtualizada) => {
+                if (err) {
+                    console.error('Erro ao buscar demanda atualizada:', err);
+                    return res.status(500).json({ success: false, error: err.message });
+                }
+                
+                res.json({ 
+                    success: true, 
+                    demanda: normalizarDadosDemanda(demandaAtualizada)
+                });
+            });
+        });
+    });
+});
+
+// POST /api/demandas/:id/reassign - Reatribuir demanda
+app.post('/api/demandas/:id/reassign', (req, res) => {
+    const id = req.params.id;
+    const { novoAtribuidoId, motivo } = req.body;
+    
+    if (!novoAtribuidoId || !motivo) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Novo atribuído e motivo são obrigatórios' 
+        });
+    }
+    
+    // Buscar demanda existente
+    db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaExistente) => {
+        if (err) {
+            console.error('Erro ao buscar demanda:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        if (!demandaExistente) {
+            return res.status(404).json({ success: false, error: 'Demanda não encontrada' });
+        }
+        
+        // Buscar dados do novo atribuído
+        db.get('SELECT * FROM usuarios WHERE id = ?', [novoAtribuidoId], (err, novoUsuario) => {
+            if (err) {
+                console.error('Erro ao buscar novo usuário:', err);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            if (!novoUsuario) {
+                return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
+            }
+            
+            // Adicionar novo atribuído à lista existente
+            let atribuidosAtuais = [];
+            try {
+                atribuidosAtuais = JSON.parse(demandaExistente.atribuidos || '[]');
+            } catch (e) {
+                atribuidosAtuais = [];
+            }
+            
+            // Verificar se já não está atribuído
+            if (!atribuidosAtuais.find(a => a.id == novoAtribuidoId)) {
+                atribuidosAtuais.push({
+                    id: novoUsuario.id,
+                    nome: novoUsuario.nome,
+                    email: novoUsuario.email
+                });
+            }
+            
+            // Atualizar demanda
+            const sql = `
+                UPDATE demandas SET
+                atribuidos = ?,
+                status = ?,
+                comentarioGestor = ?,
+                dataAtualizacao = ?
+                WHERE id = ?
+            `;
+            
+            const comentarioAtual = demandaExistente.comentarioGestor || '';
+            const novoComentario = `${comentarioAtual}\n[Reatribuído em ${new Date().toLocaleDateString('pt-BR')} para ${novoUsuario.nome}: ${motivo}]`;
+            
+            db.run(sql, [
+                JSON.stringify(atribuidosAtuais),
+                'atribuida_pendente_aceitacao',
+                novoComentario,
+                new Date().toISOString(),
+                id
+            ], function(err) {
+                if (err) {
+                    console.error('Erro ao reatribuir demanda:', err);
+                    return res.status(500).json({ success: false, error: err.message });
+                }
+                
+                // Registrar auditoria
+                registrarAuditoria(
+                    'REASSIGN',
+                    'demandas',
+                    id,
+                    { atribuidos: demandaExistente.atribuidos, status: demandaExistente.status },
+                    { atribuidos: atribuidosAtuais, status: 'atribuida_pendente_aceitacao' },
+                    req.body.usuarioId || null,
+                    req.ip
+                );
+                
+                // Buscar demanda atualizada para retornar
+                db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaAtualizada) => {
+                    if (err) {
+                        console.error('Erro ao buscar demanda atualizada:', err);
+                        return res.status(500).json({ success: false, error: err.message });
+                    }
+                    
+                    res.json({ 
+                        success: true, 
+                        demanda: normalizarDadosDemanda(demandaAtualizada)
+                    });
+                });
+            });
+        });
+    });
+});
+
 // POST /api/feedbacks
 app.post('/api/feedbacks', (req, res) => {
     const { funcionarioId, tipo, mensagem } = req.body;
@@ -697,6 +906,157 @@ app.get('/api/demandas/search', (req, res) => {
     });
 });
 
+// GET /api/anotacoes - Listar anotações
+app.get('/api/anotacoes', (req, res) => {
+    const { criadoPor, atribuidoA, month, year } = req.query;
+    
+    let sql = 'SELECT * FROM anotacoes WHERE 1=1';
+    const params = [];
+    
+    if (criadoPor) {
+        sql += ' AND criadoPor = ?';
+        params.push(criadoPor);
+    }
+    
+    if (atribuidoA) {
+        sql += ' AND atribuidoA = ?';
+        params.push(atribuidoA);
+    }
+    
+    // Filtros de mês e ano
+    if (month || year) {
+        if (month && year) {
+            sql += ' AND strftime("%m", dataCriacao) = ? AND strftime("%Y", dataCriacao) = ?';
+            params.push(month.padStart(2, '0'), year);
+        } else if (month) {
+            sql += ' AND strftime("%m", dataCriacao) = ?';
+            params.push(month.padStart(2, '0'));
+        } else if (year) {
+            sql += ' AND strftime("%Y", dataCriacao) = ?';
+            params.push(year);
+        }
+    }
+    
+    sql += ' ORDER BY dataCriacao DESC';
+    
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            console.error('Erro ao buscar anotações:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        res.json(rows);
+    });
+});
+
+// POST /api/anotacoes - Criar nova anotação
+app.post('/api/anotacoes', (req, res) => {
+    const { titulo, conteudo, cor, criadoPor, atribuidoA, audioData } = req.body;
+    
+    if (!titulo || !conteudo || !criadoPor) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Título, conteúdo e criadoPor são obrigatórios' 
+        });
+    }
+    
+    const sql = `
+        INSERT INTO anotacoes (titulo, conteudo, cor, criadoPor, atribuidoA, audioData)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [titulo, conteudo, cor || '#3498db', criadoPor, atribuidoA || null, audioData || null], function(err) {
+        if (err) {
+            console.error('Erro ao criar anotação:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        // Buscar anotação criada para retornar
+        db.get('SELECT * FROM anotacoes WHERE id = ?', [this.lastID], (err, row) => {
+            if (err) {
+                console.error('Erro ao buscar anotação criada:', err);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            res.json({ 
+                success: true, 
+                anotacao: row
+            });
+        });
+    });
+});
+
+// PUT /api/anotacoes/:id - Atualizar anotação
+app.put('/api/anotacoes/:id', (req, res) => {
+    const id = req.params.id;
+    const { titulo, conteudo, cor, atribuidoA, audioData } = req.body;
+    
+    // Buscar anotação existente
+    db.get('SELECT * FROM anotacoes WHERE id = ?', [id], (err, anotacaoExistente) => {
+        if (err) {
+            console.error('Erro ao buscar anotação:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        if (!anotacaoExistente) {
+            return res.status(404).json({ success: false, error: 'Anotação não encontrada' });
+        }
+        
+        const sql = `
+            UPDATE anotacoes SET
+            titulo = ?,
+            conteudo = ?,
+            cor = ?,
+            atribuidoA = ?,
+            audioData = ?,
+            atualizadoEm = ?
+            WHERE id = ?
+        `;
+        
+        db.run(sql, [
+            titulo || anotacaoExistente.titulo,
+            conteudo || anotacaoExistente.conteudo,
+            cor || anotacaoExistente.cor,
+            atribuidoA !== undefined ? atribuidoA : anotacaoExistente.atribuidoA,
+            audioData !== undefined ? audioData : anotacaoExistente.audioData,
+            new Date().toISOString(),
+            id
+        ], function(err) {
+            if (err) {
+                console.error('Erro ao atualizar anotação:', err);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            // Buscar anotação atualizada para retornar
+            db.get('SELECT * FROM anotacoes WHERE id = ?', [id], (err, anotacaoAtualizada) => {
+                if (err) {
+                    console.error('Erro ao buscar anotação atualizada:', err);
+                    return res.status(500).json({ success: false, error: err.message });
+                }
+                
+                res.json({ 
+                    success: true, 
+                    anotacao: anotacaoAtualizada
+                });
+            });
+        });
+    });
+});
+
+// DELETE /api/anotacoes/:id - Excluir anotação
+app.delete('/api/anotacoes/:id', (req, res) => {
+    const id = req.params.id;
+    
+    db.run('DELETE FROM anotacoes WHERE id = ?', [id], function(err) {
+        if (err) {
+            console.error('Erro ao excluir anotação:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
 // POST /api/backup
 app.post('/api/backup', (req, res) => {
     const { tipo = 'manual' } = req.body;
@@ -748,7 +1108,7 @@ app.post('/api/restore', (req, res) => {
         const sql = `
             INSERT OR REPLACE INTO demandas 
             (id, funcionarioId, nomeFuncionario, emailFuncionario, categoria, prioridade, complexidade, descricao, local, dataCriacao, dataLimite, status, isRotina, diasSemana, tag, comentarios, comentarioGestor, dataConclusao, atribuidos, anexosCriacao, anexosResolucao, comentarioReprovacaoAtribuicao, nomeDemanda)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
         const params = [
