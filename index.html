@@ -309,13 +309,13 @@
 
         .filter-container {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
             margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
@@ -323,13 +323,16 @@
             font-weight: bold;
             color: var(--dark-color);
             white-space: nowrap;
+            font-size: 12px;
         }
 
         .filter-container select,
         .filter-container input {
             flex: 1;
-            min-width: 200px;
-            max-width: 300px;
+            min-width: 150px;
+            max-width: 200px;
+            font-size: 12px;
+            padding: 5px;
         }
 
         .date-filter-container {
@@ -1404,21 +1407,45 @@
             margin-bottom: 20px;
             min-height: 600px;
             position: relative;
-            padding-top: 100px; /* Espaço extra para os botões */
+            padding-top: 60px; /* Espaço reduzido para filtros menores */
+        }
+
+        .mindmap-container .card-header {
+            position: absolute;
+            top: 10px; /* Posicionado mais no topo */
+            left: 10px;
+            right: 10px;
+            z-index: 100;
+            padding: 5px 0;
+        }
+
+        .mindmap-container .card-header h2 {
+            font-size: 1.2rem; /* Reduzido */
+            margin: 0;
+        }
+
+        .mindmap-container .card-actions {
+            gap: 5px; /* Reduzido */
+        }
+
+        .mindmap-container .card-actions select,
+        .mindmap-container .card-actions button {
+            font-size: 12px; /* Reduzido */
+            padding: 4px 8px; /* Reduzido */
         }
 
         .mindmap-node {
             position: absolute;
             background: var(--primary-color);
             color: white;
-            padding: 10px 15px;
+            padding: 8px 12px; /* Reduzido */
             border-radius: 20px;
             cursor: move;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             z-index: 10;
             transition: transform 0.2s;
-            font-size: 12px;
-            max-width: 120px;
+            font-size: 11px; /* Reduzido */
+            max-width: 100px; /* Reduzido */
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -2305,7 +2332,7 @@
 
             <div id="mindmap" class="tab-content">
                 <div class="mindmap-container">
-                    <div class="card-header" style="position: absolute; top: 20px; left: 20px; right: 20px; z-index: 100;">
+                    <div class="card-header">
                         <h2><i class="fas fa-project-diagram"></i> Mapa Mental de Prioridades</h2>
                         <div class="card-actions">
                             <select id="mindmapFilter" onchange="filterMindmap()">
@@ -3499,11 +3526,9 @@
     function getDemandasParaUsuarioLogado() {
         if (!usuarioLogado) return [];
         
-        // Para gestores, mostrar todas as demandas
+        // Para gestores, mostrar todas as demandas dos colaboradores no dashboard
         if (usuarioLogado.role === 'gestor') {
-            // Alteração: No login do gestor, as demandas dos colaboradores não devem ficar na aba "Minhas Demandas"
-            // Apenas mostrar as demandas criadas pelo próprio gestor
-            return todasDemandas.filter(d => d.funcionarioId === usuarioLogado.id);
+            return todasDemandas;
         }
         
         // Para funcionários, as demandas que eles criaram ou que foram atribuídas a eles
@@ -4293,7 +4318,15 @@
 
     // Renderizar análise
     function renderizarAnalise() {
-        const demandasDoUsuario = getDemandasParaUsuarioLogado();
+        let demandasDoUsuario;
+        
+        // Para gestores, mostrar todas as demandas em análise dos colaboradores
+        if (usuarioLogado && usuarioLogado.role === 'gestor') {
+            demandasDoUsuario = todasDemandas.filter(d => d.status === 'finalizado_pendente_aprovacao');
+        } else {
+            demandasDoUsuario = getDemandasParaUsuarioLogado();
+        }
+        
         const statusFilter = document.getElementById('analiseFilter')?.value || 'todos';
         const monthFilter = document.getElementById('analiseMonthFilter')?.value || '';
         const yearFilter = document.getElementById('analiseYearFilter')?.value || '';
@@ -4373,7 +4406,15 @@
 
     // Renderizar aprovadas
     function renderizarAprovadas() {
-        const demandasDoUsuario = getDemandasParaUsuarioLogado();
+        let demandasDoUsuario;
+        
+        // Para gestores, mostrar todas as demandas concluídas dos colaboradores
+        if (usuarioLogado && usuarioLogado.role === 'gestor') {
+            demandasDoUsuario = todasDemandas.filter(d => d.status === 'aprovada');
+        } else {
+            demandasDoUsuario = getDemandasParaUsuarioLogado();
+        }
+        
         const monthFilter = document.getElementById('aprovadasMonthFilter')?.value || '';
         const yearFilter = document.getElementById('aprovadasYearFilter')?.value || '';
 
@@ -5786,7 +5827,7 @@
         // Adicionar nós para cada tipo de demanda
         const tiposDemanda = [
             { nome: 'Pendentes', filtro: d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao', cor: 'pending' },
-            { nome: 'Em Análise', filtro: d => d.status === 'finalizado_pendente_aprovacao', cor: 'in-analysis' },
+            { nome: 'Em Análise', filtro: d => d.status === 'finalizado_pendente_aprovacao', cor: 'in-analysis', posicaoAfastada: true }, // Adicionada propriedade para posicionar mais longe
             { nome: 'Atrasadas', filtro: d => {
                 const dataLimite = new Date(d.dataLimite);
                 const hoje = new Date();
@@ -5799,7 +5840,7 @@
         const centralNode = document.createElement('div');
         centralNode.className = 'mindmap-node';
         centralNode.style.left = '50%';
-        centralNode.style.top = '20%';
+        centralNode.style.top = '15%'; // Ajustado para cima
         centralNode.style.transform = 'translate(-50%, -50%)';
         centralNode.innerHTML = '<i class="fas fa-user"></i> Minhas Demandas';
         mindmapArea.appendChild(centralNode);
@@ -5815,16 +5856,24 @@
             tipoNode.className = `mindmap-node ${tipo.cor}`;
             
             // Posicionar em círculo ao redor do nó central
-            const angleCircle = (index / tiposDemanda.length) * 2 * Math.PI;
-            const radius = 25; // Aumentado para melhor espaçamento
+            let angleCircle, radius, x, y;
             
-            // Calcular posição em porcentagem
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 40 + radius * Math.sin(angleCircle); // Ajustado para não sobrepor o nó central
+            // Posicionamento especial para "Em Análise" - mais afastado e para baixo
+            if (tipo.posicaoAfastada) {
+                angleCircle = Math.PI / 2; // Diretamente para baixo
+                radius = 40; // Mais afastado
+                x = 50 + radius * Math.cos(angleCircle);
+                y = 70; // Mais para baixo
+            } else {
+                angleCircle = (index / tiposDemanda.length) * 2 * Math.PI;
+                radius = 25;
+                x = 50 + radius * Math.cos(angleCircle);
+                y = 40 + radius * Math.sin(angleCircle);
+            }
             
             tipoNode.style.left = `${x}%`;
             tipoNode.style.top = `${y}%`;
-            tipoNode.style.transform = 'translate(-50%, -50%)'; // Centralizar o nó
+            tipoNode.style.transform = 'translate(-50%, -50%)';
             tipoNode.innerHTML = `<strong>${tipo.nome}</strong><br><small>${demandasTipo.length} demandas</small>`;
             
             // Adicionar evento de clique para filtrar
@@ -5867,15 +5916,28 @@
                 
                 // Posicionar em círculo ao redor do nó do tipo
                 const angleDemanda = (idx / demandasTipo.length) * 2 * Math.PI;
-                const radiusDemanda = 18; // Aumentado para melhor espaçamento
+                const radiusDemanda = 15; // Reduzido para melhor espaçamento
                 
                 // Calcular posição em porcentagem
-                const xDemanda = x + radiusDemanda * Math.cos(angleDemanda);
-                const yDemanda = y + radiusDemanda * Math.sin(angleDemanda);
+                let xDemanda, yDemanda;
+                
+                if (tipo.posicaoAfastada) {
+                    // Para "Em Análise", posicionar em um arco mais amplo
+                    const startAngle = Math.PI * 0.7; // Começa um pouco antes de 90 graus
+                    const endAngle = Math.PI * 1.3; // Termina um pouco depois de 90 graus
+                    const angleRange = endAngle - startAngle;
+                    const currentAngle = startAngle + (angleRange * (idx / demandasTipo.length));
+                    
+                    xDemanda = x + radiusDemanda * Math.cos(currentAngle);
+                    yDemanda = y + radiusDemanda * Math.sin(currentAngle);
+                } else {
+                    xDemanda = x + radiusDemanda * Math.cos(angleDemanda);
+                    yDemanda = y + radiusDemanda * Math.sin(angleDemanda);
+                }
                 
                 node.style.left = `${xDemanda}%`;
                 node.style.top = `${yDemanda}%`;
-                node.style.transform = 'translate(-50%, -50%)'; // Centralizar o nó
+                node.style.transform = 'translate(-50%, -50%)';
                 node.innerHTML = `<strong>${demanda.nomeDemanda || demanda.descricao}</strong><br><small>${demanda.prioridade}</small>`;
                 
                 // Adicionar evento de clique para ver detalhes
