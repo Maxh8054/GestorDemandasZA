@@ -1398,29 +1398,26 @@
 
         .mindmap-container {
             background: white;
-            padding: 40px; /* Aumentado de 20px para 40px */
+            padding: 20px;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
-            margin-bottom: 30px; /* Aumentado de 20px para 30px */
-            min-height: 600px; /* Aumentado de 400px para 600px */
+            margin-bottom: 20px;
+            min-height: 600px;
             position: relative;
-            overflow: auto; /* Adicionado para permitir rolagem se necessário */
         }
 
         .mindmap-node {
             position: absolute;
             background: var(--primary-color);
             color: white;
-            padding: 15px 20px; /* Aumentado de 10px 15px para 15px 20px */
-            border-radius: 25px; /* Aumentado de 20px para 25px */
+            padding: 10px 15px;
+            border-radius: 20px;
             cursor: move;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* Aumentado de 0 2px 5px para 0 4px 8px */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             z-index: 10;
-            transition: transform 0.3s, box-shadow 0.3s; /* Adicionado box-shadow à transição */
-            font-size: 14px; /* Aumentado de 12px para 14px */
-            max-width: 150px; /* Aumentado de 120px para 150px */
-            min-width: 120px; /* Adicionado para garantir largura mínima */
-            text-align: center; /* Adicionado para centralizar texto */
+            transition: transform 0.2s;
+            font-size: 12px;
+            max-width: 120px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -1455,27 +1452,8 @@
             background: var(--success-color);
         }
 
-        .mindmap-connection {
-            position: absolute;
-            background: #ccc;
-            z-index: 1;
-            transform-origin: 0 0;
-            height: 3px; /* Aumentado de 2px para 3px */
-        }
-
-        /* Adicionar mais espaçamento entre os nós do mapa mental */
-        .mindmap-section {
-            margin-bottom: 40px; /* Adicionado espaçamento entre seções */
-            padding: 20px;
-            border-radius: var(--border-radius);
-            background: rgba(255, 255, 255, 0.7);
-        }
-
-        .mindmap-section h3 {
-            margin-bottom: 20px;
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 10px;
+        .mindmap-node.overdue {
+            background: var(--overdue-color);
         }
 
         .notes-container {
@@ -1705,31 +1683,6 @@
             animation: slideIn 0.3s ease;
         }
 
-        .voice-note-btn {
-            background: var(--info-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .voice-note-btn:hover {
-            background: var(--primary-color);
-            transform: scale(1.1);
-        }
-
-        .voice-note-btn.recording {
-            background: var(--danger-color);
-            animation: pulse 1.5s infinite;
-        }
-
         .month-filter {
             margin-bottom: 15px;
         }
@@ -1758,6 +1711,8 @@
 
         .demanda-checkbox {
             margin-right: 10px;
+            width: 20px;
+            height: 20px;
         }
 
         .batch-actions {
@@ -1770,22 +1725,27 @@
             align-items: center;
         }
 
-        .audio-player {
+        .transcription-area {
             margin-top: 10px;
-            width: 100%;
-        }
-
-        .audio-note {
-            background: rgba(52, 152, 219, 0.1);
-            border-left: 4px solid var(--info-color);
             padding: 10px;
-            margin-top: 10px;
+            border: 1px solid #ddd;
             border-radius: 4px;
+            min-height: 100px;
+            background-color: #f9f9f9;
         }
 
-        .audio-note p {
-            margin: 0 0 5px 0;
-            font-weight: bold;
+        .transcription-area p {
+            margin: 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .transcription-area.active {
+            background-color: #e9f5ff;
+            border-color: var(--info-color);
+        }
+
+        .transcription-area.active p {
             color: var(--info-color);
         }
     </style>
@@ -1938,11 +1898,6 @@
             </div>
         </header>
 
-        <div class="search-bar">
-            <input type="text" placeholder="Pesquisar demandas, funcionários, categorias..." id="globalSearch">
-            <i class="fas fa-search"></i>
-        </div>
-
         <main>
             <div class="dashboard">
                 <div class="stat-card" onclick="drillDown('total')">
@@ -2025,16 +1980,16 @@
                 <div class="tab" onclick="switchTab('notes')">
                     <i class="fas fa-sticky-note"></i> Anotações
                 </div>
-                <div class="tab" onclick="switchTab('ranking')">
+                <div class="tab" id="gestorTab2" style="display: none;" onclick="switchTab('ranking')">
                     <i class="fas fa-chart-bar"></i> Ranking
                 </div>
-                <div class="tab" id="gestorTab2" style="display: none;" onclick="switchTab('feedback')">
+                <div class="tab" id="gestorTab3" style="display: none;" onclick="switchTab('feedback')">
                     <i class="fas fa-comment-dots"></i> Feedbacks
                 </div>
-                <div class="tab" id="gestorTab3" style="display: none;" onclick="switchTab('cobranca')">
+                <div class="tab" id="gestorTab4" style="display: none;" onclick="switchTab('cobranca')">
                     <i class="fas fa-envelope"></i> Cobrança
                 </div>
-                <div class="tab" id="gestorTab4" style="display: none;" onclick="switchTab('exportar')">
+                <div class="tab" id="gestorTab5" style="display: none;" onclick="switchTab('exportar')">
                     <i class="fas fa-download"></i> Exportar/Importar
                 </div>
             </div>
@@ -2274,10 +2229,6 @@
                 <div class="card">
                     <div class="card-header">
                         <h2><i class="fas fa-clock"></i> Minhas Demandas Pendentes</h2>
-                        <div class="search-bar" style="width: 300px;">
-                            <input type="text" placeholder="Pesquisar por nome ou TAG..." id="pendentesSearch">
-                            <i class="fas fa-search"></i>
-                        </div>
                         <div class="card-actions">
                             <select id="pendentesFilter" onchange="filterPendentes()">
                                 <option value="todos">Todos</option>
@@ -2309,10 +2260,6 @@
                 <div class="card">
                     <div class="card-header">
                         <h2><i class="fas fa-search"></i> Demandas em Análise</h2>
-                        <div class="search-bar" style="width: 300px;">
-                            <input type="text" placeholder="Pesquisar por nome ou TAG..." id="analiseSearch">
-                            <i class="fas fa-search"></i>
-                        </div>
                         <div class="card-actions">
                             <select id="analiseFilter" onchange="filterAnalise()">
                                 <option value="todos">Todos</option>
@@ -2342,10 +2289,6 @@
                 <div class="card">
                     <div class="card-header">
                         <h2><i class="fas fa-exclamation-triangle"></i> Demandas Atrasadas</h2>
-                        <div class="search-bar" style="width: 300px;">
-                            <input type="text" placeholder="Pesquisar por nome ou TAG..." id="atrasadasSearch">
-                            <i class="fas fa-search"></i>
-                        </div>
                         <div class="card-actions" id="gestorActions2" style="display: none;">
                             <button onclick="reassignSelectedOverdue()"><i class="fas fa-user-plus"></i> Reatribuir</button>
                             <button onclick="extendSelectedDeadlines()"><i class="fas fa-calendar-plus"></i> Estender Prazos</button>
@@ -2378,10 +2321,6 @@
                 <div class="card">
                     <div class="card-header">
                         <h2><i class="fas fa-check-circle"></i> Minhas Demandas Concluídas</h2>
-                        <div class="search-bar" style="width: 300px;">
-                            <input type="text" placeholder="Pesquisar por nome ou TAG..." id="aprovadasSearch">
-                            <i class="fas fa-search"></i>
-                        </div>
                         <div class="card-actions" id="gestorActions3" style="display: none;">
                             <button onclick="exportCompleted()"><i class="fas fa-download"></i> Exportar Concluídas</button>
                         </div>
@@ -2488,10 +2427,6 @@
                 <div class="card">
                     <div class="card-header">
                         <h2><i class="fas fa-users"></i> Demandas dos Colaboradores</h2>
-                        <div class="search-bar" style="width: 300px;">
-                            <input type="text" placeholder="Pesquisar por nome ou TAG..." id="colabSearch">
-                            <i class="fas fa-search"></i>
-                        </div>
                         <div class="card-actions">
                             <select id="colabFilter" onchange="filterColabDemandas()">
                                 <option value="todos">Todos</option>
@@ -2502,6 +2437,11 @@
                             </select>
                             <select id="colabFuncFilter" onchange="filterColabDemandas()">
                                 <option value="todos">Todos os Funcionários</option>
+                            </select>
+                            <select id="colabLocalFilter" onchange="filterColabDemandas()">
+                                <option value="todos">Todos os Locais</option>
+                                <option value="Lundin">Lundin</option>
+                                <option value="R&D">R&D</option>
                             </select>
                             <div class="date-filter-container">
                                 <div class="year-filter">
@@ -2702,10 +2642,6 @@
         <h2><i class="fas fa-user-plus"></i> Reatribuir Demanda</h2>
         <form id="reassignForm">
             <div class="form-group">
-                <label for="reassignDemandaId">Demanda:</label>
-                <input type="text" id="reassignDemandaId" readonly>
-            </div>
-            <div class="form-group">
                 <label for="reassignTo">Atribuir para:</label>
                 <select id="reassignTo" required>
                     <option value="">Selecione um funcionário</option>
@@ -2728,10 +2664,6 @@
         <span class="close-btn" onclick="closeModal('extendDeadlineModal')">&times;</span>
         <h2><i class="fas fa-calendar-plus"></i> Estender Prazo da Demanda</h2>
         <form id="extendDeadlineForm">
-            <div class="form-group">
-                <label for="extendDemandaId">Demanda:</label>
-                <input type="text" id="extendDemandaId" readonly>
-            </div>
             <div class="form-group">
                 <label for="extendReason">Motivo da extensão:</label>
                 <textarea id="extendReason" rows="3" required placeholder="Explique o motivo da extensão de prazo..."></textarea>
@@ -2779,8 +2711,11 @@
             </div>
             <div class="form-group">
                 <button type="submit" class="success"><i class="fas fa-save"></i> Salvar Anotação</button>
-                <button type="button" id="voiceNoteBtn" class="voice-note-btn"><i class="fas fa-microphone"></i></button>
+                <button type="button" id="transcribeBtn" class="secondary"><i class="fas fa-microphone"></i> Transcrever</button>
                 <button type="button" class="secondary" onclick="closeModal('noteModal')"><i class="fas fa-times"></i> Cancelar</button>
+            </div>
+            <div id="transcriptionArea" class="transcription-area">
+                <p>Clique no botão "Transcrever" para começar a transcrever sua fala para texto.</p>
             </div>
         </form>
     </div>
@@ -2841,10 +2776,8 @@
     let notes = [];
     let feedbacks = [];
     let mindmapNodes = [];
-    let isRecording = false;
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let audioBlob = null;
+    let isTranscribing = false;
+    let recognition = null;
     let selectedOverdueDemands = new Set();
 
     const SERVER_URL = window.location.origin;
@@ -2867,7 +2800,92 @@
         
         // Inicializar filtros de mês e ano
         inicializarFiltrosData();
+        
+        // Inicializar reconhecimento de fala
+        inicializarReconhecimentoFala();
     });
+
+    // Função para inicializar o reconhecimento de fala
+    function inicializarReconhecimentoFala() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onresult = function(event) {
+                const transcriptionArea = document.getElementById('transcriptionArea');
+                const noteContent = document.getElementById('noteContent');
+                
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    noteContent.value += finalTranscript;
+                }
+                
+                if (interimTranscript) {
+                    transcriptionArea.innerHTML = `<p><strong>Transcrevendo:</strong> ${interimTranscript}</p>`;
+                    transcriptionArea.classList.add('active');
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Erro no reconhecimento de fala:', event.error);
+                const transcriptionArea = document.getElementById('transcriptionArea');
+                transcriptionArea.innerHTML = `<p>Erro no reconhecimento de fala: ${event.error}</p>`;
+                transcriptionArea.classList.remove('active');
+                isTranscribing = false;
+                document.getElementById('transcribeBtn').innerHTML = '<i class="fas fa-microphone"></i> Transcrever';
+            };
+
+            recognition.onend = function() {
+                isTranscribing = false;
+                document.getElementById('transcribeBtn').innerHTML = '<i class="fas fa-microphone"></i> Transcrever';
+                const transcriptionArea = document.getElementById('transcriptionArea');
+                transcriptionArea.innerHTML = '<p>Transcrição concluída.</p>';
+                setTimeout(() => {
+                    transcriptionArea.classList.remove('active');
+                }, 2000);
+            };
+        } else {
+            console.log('Reconhecimento de fala não suportado neste navegador');
+            document.getElementById('transcribeBtn').style.display = 'none';
+        }
+    }
+
+    // Função para iniciar/parar a transcrição
+    function toggleTranscription() {
+        if (!recognition) {
+            showNotification('error', 'Reconhecimento de Fala', 'Seu navegador não suporta reconhecimento de fala.');
+            return;
+        }
+
+        const transcriptionArea = document.getElementById('transcriptionArea');
+        const transcribeBtn = document.getElementById('transcribeBtn');
+
+        if (isTranscribing) {
+            recognition.stop();
+            isTranscribing = false;
+            transcribeBtn.innerHTML = '<i class="fas fa-microphone"></i> Transcrever';
+        } else {
+            recognition.start();
+            isTranscribing = true;
+            transcribeBtn.innerHTML = '<i class="fas fa-stop"></i> Parar';
+            transcriptionArea.innerHTML = '<p><strong>Ouvindo...</strong> Fale agora para transcrever.</p>';
+            transcriptionArea.classList.add('active');
+        }
+    }
 
     // Função para inicializar filtros de mês e ano
     function inicializarFiltrosData() {
@@ -3238,6 +3256,7 @@
                 document.getElementById('gestorTab2').style.display = 'block';
                 document.getElementById('gestorTab3').style.display = 'block';
                 document.getElementById('gestorTab4').style.display = 'block';
+                document.getElementById('gestorTab5').style.display = 'block';
                 document.getElementById('gestorActions2').style.display = 'flex';
                 document.getElementById('gestorActions3').style.display = 'flex';
                 document.getElementById('exportRankingBtn').style.display = 'inline-block';
@@ -3260,7 +3279,6 @@
         inicializarGraficos();
         
         timerInterval = setInterval(atualizarTemposRestantes, 1000);
-        inicializarNotificacoesTempoReal();
         verificarLembretes();
         
         gerarNotificacoesAoLogar();
@@ -3280,7 +3298,7 @@
 
     // Carregar funcionários nos selects
     function carregarFuncionariosNosSelect() {
-        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'feedbackFuncFilter', 'feedbackFuncSelect', 'reassignTo', 'noteAssignTo'];
+        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'feedbackFuncFilter', 'feedbackFuncSelect', 'reassignTo', 'noteAssignTo'];
         
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
@@ -3293,6 +3311,13 @@
                 } else if (selectId === 'cobrancaFuncionario') {
                     const defaultOption = new Option('Todos os Funcionários com Demandas Atrasadas', 'todos');
                     select.add(defaultOption);
+                } else if (selectId === 'colabLocalFilter') {
+                    const defaultOption = new Option('Todos os Locais', 'todos');
+                    select.add(defaultOption);
+                    const optionLundin = new Option('Lundin', 'Lundin');
+                    select.add(optionLundin);
+                    const optionRD = new Option('R&D', 'R&D');
+                    select.add(optionRD);
                 } else if (selectId === 'feedbackFuncSelect' || selectId === 'reassignTo') {
                     const defaultOption = new Option('Selecione um funcionário', '');
                     select.add(defaultOption);
@@ -4026,48 +4051,6 @@
             anexosCriacaoInput.addEventListener('change', atualizarListaAnexosCriacao);
         }
         
-        const searchInput = document.getElementById('globalSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-            });
-        }
-
-        const pendentesSearch = document.getElementById('pendentesSearch');
-        if (pendentesSearch) {
-            pendentesSearch.addEventListener('input', (e) => {
-                filterPendentes();
-            });
-        }
-
-        const analiseSearch = document.getElementById('analiseSearch');
-        if (analiseSearch) {
-            analiseSearch.addEventListener('input', (e) => {
-                filterAnalise();
-            });
-        }
-
-        const atrasadasSearch = document.getElementById('atrasadasSearch');
-        if (atrasadasSearch) {
-            atrasadasSearch.addEventListener('input', (e) => {
-                renderizarAtrasadas();
-            });
-        }
-
-        const aprovadasSearch = document.getElementById('aprovadasSearch');
-        if (aprovadasSearch) {
-            aprovadasSearch.addEventListener('input', (e) => {
-                renderizarAprovadas();
-            });
-        }
-
-        const colabSearch = document.getElementById('colabSearch');
-        if (colabSearch) {
-            colabSearch.addEventListener('input', (e) => {
-                filterColabDemandas();
-            });
-        }
-        
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.multi-select-container') && !e.target.closest('.category-search')) {
                 document.querySelectorAll('.multi-select-dropdown, .category-dropdown').forEach(dropdown => {
@@ -4076,10 +4059,10 @@
             }
         });
 
-        // Event listener para o botão de nota por voz
-        const voiceNoteBtn = document.getElementById('voiceNoteBtn');
-        if (voiceNoteBtn) {
-            voiceNoteBtn.addEventListener('click', toggleVoiceRecording);
+        // Event listener para o botão de transcrição
+        const transcribeBtn = document.getElementById('transcribeBtn');
+        if (transcribeBtn) {
+            transcribeBtn.addEventListener('click', toggleTranscription);
         }
 
         // Event listener para o formulário de reatribuição
@@ -4272,14 +4255,13 @@
             if (sucesso) {
                 await carregarDadosDoServidor();
                 
-                // Notificar o gestor sobre a demanda para aprovação
+                // Redirecionar para a aba de análise para todos os usuários
+                switchTab('analise');
+
                 const gestor = usuarios.find(u => u.role === 'gestor');
-                if (gestor) {
+                if(gestor) {
                     // Adicionar notificação para o gestor
-                    addUserNotification('info', 'Demanda para Aprovar', 
-                        `A demanda "${demandaResolucaoAtual.nomeDemanda}" foi resolvida e espera sua aprovação.`, 
-                        { tag: demandaResolucaoAtual.tag }
-                    );
+                    addUserNotification('info', 'Demanda para Aprovar', `A demanda "${demandaResolucaoAtual.nomeDemanda}" foi resolvida e espera sua aprovação.`, { tag: demandaResolucaoAtual.tag });
                     
                     // Enviar email para o gestor
                     const assunto = encodeURIComponent(`Demanda Resolvida para Aprovação: ${demandaResolucaoAtual.nomeDemanda}`);
@@ -4287,26 +4269,8 @@
                     window.open(`mailto:${gestor.email}?subject=${assunto}&body=${corpo}`, '_blank');
                 }
                 
-                // Notificar o dono da demanda (se for diferente de quem resolveu)
-                if (demandaResolucaoAtual.funcionarioId !== usuarioLogado.id) {
-                    const dono = usuarios.find(u => u.id === demandaResolucaoAtual.funcionarioId);
-                    if (dono) {
-                        addUserNotification('info', 'Demanda Resolvida', 
-                            `Sua demanda "${demandaResolucaoAtual.nomeDemanda}" foi resolvida e está aguardando aprovação.`, 
-                            { tag: demandaResolucaoAtual.tag }
-                        );
-                        
-                        const assunto = encodeURIComponent(`Sua Demanda Foi Resolvida: ${demandaResolucaoAtual.nomeDemanda}`);
-                        const corpo = encodeURIComponent(`Prezado(a) ${demandaResolucaoAtual.nomeFuncionario},\n\nSua demanda foi resolvida e está aguardando aprovação do gestor.\n\n--- Detalhes da Demanda ---\nNome: ${demandaResolucaoAtual.nomeDemanda}\nTAG: ${demandaResolucaoAtual.tag}\n\n--- Comentários do Resolvedor ---\n${comentarios}\n\nVocê será notificado quando houver uma decisão.\n\nAtenciosamente,\nSistema de Gestão de Demandas`);
-                        window.open(`mailto:${dono.email}?subject=${assunto}&body=${corpo}`, '_blank');
-                    }
-                }
-                
                 showNotification('success', 'Resolução Salva', `A resolução foi salva e a demanda agora está em análise.`);
                 closeModal('resolucaoModal');
-                
-                // Redirecionar para a aba de análise para todos os usuários
-                switchTab('analise');
             }
 
         } catch (error) {
@@ -4384,7 +4348,6 @@
     // Renderizar demandas
     function renderizarDemandas() {
         const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const searchTerm = document.getElementById('pendentesSearch')?.value.toLowerCase() || '';
         const statusFilter = document.getElementById('pendentesFilter')?.value || 'todos';
         const monthFilter = document.getElementById('pendentesMonthFilter')?.value || '';
         const yearFilter = document.getElementById('pendentesYearFilter')?.value || '';
@@ -4394,15 +4357,11 @@
         if (pendentesContainer) pendentesContainer.innerHTML = '';
 
         let pendentes = demandasDoUsuario.filter(d => {
-            const matchesSearch = !searchTerm || 
-                (d.nomeDemanda && d.nomeDemanda.toLowerCase().includes(searchTerm)) ||
-                (d.tag && d.tag.toLowerCase().includes(searchTerm));
-            
             const matchesStatus = statusFilter === 'todos' || d.status === statusFilter;
             
             const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
             
-            return matchesSearch && matchesStatus && matchesDate && (
+            return matchesStatus && matchesDate && (
                 d.status === 'pendente' || 
                 d.status === 'reprovada' || 
                 d.status === 'reprovada_pelo_atribuido' ||
@@ -4425,7 +4384,6 @@
     // Renderizar análise
     function renderizarAnalise() {
         const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const searchTerm = document.getElementById('analiseSearch')?.value.toLowerCase() || '';
         const statusFilter = document.getElementById('analiseFilter')?.value || 'todos';
         const monthFilter = document.getElementById('analiseMonthFilter')?.value || '';
         const yearFilter = document.getElementById('analiseYearFilter')?.value || '';
@@ -4435,15 +4393,11 @@
         if (analiseContainer) analiseContainer.innerHTML = '';
 
         let analise = demandasDoUsuario.filter(d => {
-            const matchesSearch = !searchTerm || 
-                (d.nomeDemanda && d.nomeDemanda.toLowerCase().includes(searchTerm)) ||
-                (d.tag && d.tag.toLowerCase().includes(searchTerm));
-            
             const matchesStatus = statusFilter === 'todos' || d.status === statusFilter;
             
             const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
             
-            return matchesSearch && matchesStatus && matchesDate && d.status === 'finalizado_pendente_aprovacao';
+            return matchesStatus && matchesDate && d.status === 'finalizado_pendente_aprovacao';
         });
         
         if (analiseContainer) {
@@ -4460,8 +4414,24 @@
 
     // Renderizar atrasadas
     function renderizarAtrasadas() {
-        const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const searchTerm = document.getElementById('atrasadasSearch')?.value.toLowerCase() || '';
+        // Se for gestor, mostrar todas as demandas atrasadas dos colaboradores
+        let demandasParaMostrar;
+        if (usuarioLogado && usuarioLogado.role === 'gestor') {
+            demandasParaMostrar = todasDemandas.filter(d => {
+                if (d.status === 'aprovada') return false;
+                const dataLimite = new Date(d.dataLimite);
+                const hoje = new Date();
+                return dataLimite < hoje;
+            });
+        } else {
+            demandasParaMostrar = getDemandasParaUsuarioLogado().filter(d => {
+                if (d.status === 'aprovada') return false;
+                const dataLimite = new Date(d.dataLimite);
+                const hoje = new Date();
+                return dataLimite < hoje;
+            });
+        }
+
         const monthFilter = document.getElementById('atrasadasMonthFilter')?.value || '';
         const yearFilter = document.getElementById('atrasadasYearFilter')?.value || '';
 
@@ -4469,17 +4439,9 @@
         
         if (atrasadasContainer) atrasadasContainer.innerHTML = '';
 
-        let atrasadas = demandasDoUsuario.filter(d => {
-            if (d.status === 'aprovada') return false;
-            const dataLimite = new Date(d.dataLimite);
-            const hoje = new Date();
-            const matchesSearch = !searchTerm || 
-                (d.nomeDemanda && d.nomeDemanda.toLowerCase().includes(searchTerm)) ||
-                (d.tag && d.tag.toLowerCase().includes(searchTerm));
-            
+        let atrasadas = demandasParaMostrar.filter(d => {
             const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            
-            return matchesSearch && matchesDate && dataLimite < hoje;
+            return matchesDate;
         });
         
         // Mostrar ações em lote se houver demandas atrasadas
@@ -4502,7 +4464,6 @@
     // Renderizar aprovadas
     function renderizarAprovadas() {
         const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const searchTerm = document.getElementById('aprovadasSearch')?.value.toLowerCase() || '';
         const monthFilter = document.getElementById('aprovadasMonthFilter')?.value || '';
         const yearFilter = document.getElementById('aprovadasYearFilter')?.value || '';
 
@@ -4511,13 +4472,9 @@
         if (aprovadasContainer) aprovadasContainer.innerHTML = '';
 
         let concluidas = demandasDoUsuario.filter(d => {
-            const matchesSearch = !searchTerm || 
-                (d.nomeDemanda && d.nomeDemanda.toLowerCase().includes(searchTerm)) ||
-                (d.tag && d.tag.toLowerCase().includes(searchTerm));
-            
             const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
             
-            return matchesSearch && matchesDate && d.status === 'aprovada';
+            return matchesDate && d.status === 'aprovada';
         });
         
         if (aprovadasContainer) {
@@ -4534,9 +4491,9 @@
     // Renderizar pendentes dos colaboradores
     function renderizarPendentesColaboradores() {
         const demandasColaboradores = getDemandasDosColaboradores();
-        const searchTerm = document.getElementById('colabSearch')?.value.toLowerCase() || '';
         const statusFilter = document.getElementById('colabFilter')?.value || 'todos';
         const funcFilter = document.getElementById('colabFuncFilter')?.value || 'todos';
+        const localFilter = document.getElementById('colabLocalFilter')?.value || 'todos';
         const monthFilter = document.getElementById('colabMonthFilter')?.value || '';
         const yearFilter = document.getElementById('colabYearFilter')?.value || '';
 
@@ -4545,15 +4502,12 @@
         if (colabContainer) colabContainer.innerHTML = '';
 
         let demandas = demandasColaboradores.filter(d => {
-            const matchesSearch = !searchTerm || 
-                (d.nomeDemanda && d.nomeDemanda.toLowerCase().includes(searchTerm)) ||
-                (d.tag && d.tag.toLowerCase().includes(searchTerm));
-            
             const matchesStatus = statusFilter === 'todos' || d.status === statusFilter;
             const matchesFunc = funcFilter === 'todos' || d.funcionarioId == funcFilter;
+            const matchesLocal = localFilter === 'todos' || d.local === localFilter;
             const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
             
-            return matchesSearch && matchesStatus && matchesFunc && matchesDate;
+            return matchesStatus && matchesFunc && matchesLocal && matchesDate;
         });
         
         if (colabContainer) {
@@ -4922,14 +4876,12 @@
         const demanda = todasDemandas.find(d => d.id === demandaId);
         if (!demanda) return;
 
-        document.getElementById('extendDemandaId').value = demanda.nomeDemanda || demanda.descricao;
         document.getElementById('extendDeadlineForm').reset();
         showModal('extendDeadlineModal', 'Estender Prazo da Demanda');
     }
 
     // Salvar extensão de prazo
     async function salvarExtensaoPrazo() {
-        const demandaId = parseInt(document.getElementById('extendDemandaId').value);
         const motivo = document.getElementById('extendReason').value;
         const novaDataLimite = document.getElementById('novaDataLimiteExt').value;
 
@@ -4938,58 +4890,54 @@
             return;
         }
 
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
+        // Processar cada demanda selecionada
+        const promises = Array.from(selectedOverdueDemands).map(async (demandaId) => {
+            const demanda = todasDemandas.find(d => d.id === demandaId);
+            if (!demanda) return;
 
-        const dadosAtualizados = {
-            dataLimite: novaDataLimite,
-            comentarioGestor: `Prazo estendido. Motivo: ${motivo}`
-        };
+            const dadosAtualizados = {
+                dataLimite: novaDataLimite,
+                comentarioGestor: `Prazo estendido. Motivo: ${motivo}`
+            };
 
-        const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
+            return await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
+        });
 
-        if (sucesso) {
-            // Notificar o dono da demanda
-            addUserNotification('info', 'Prazo Estendido', 
-                `O prazo da sua demanda "${demanda.nomeDemanda}" foi estendido.`, 
-                { tag: demanda.tag }
-            );
-
-            // Notificar os atribuídos (se houver)
-            if (demanda.atribuidos && demanda.atribuidos.length > 0) {
-                demanda.atribuidos.forEach(atribuido => {
-                    if (atribuido.id !== usuarioLogado.id) {
+        try {
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r).length;
+            
+            if (successCount > 0) {
+                showNotification('success', 'Prazos Estendidos', `${successCount} prazos foram estendidos com sucesso.`);
+                closeModal('extendDeadlineModal');
+                await carregarDadosDoServidor();
+                renderizarAtrasadas();
+                
+                // Notificar os donos das demandas
+                Array.from(selectedOverdueDemands).forEach(demandaId => {
+                    const demanda = todasDemandas.find(d => d.id === demandaId);
+                    if (demanda) {
                         addUserNotification('info', 'Prazo Estendido', 
-                            `O prazo da demanda "${demanda.nomeDemanda}" foi estendido.`, 
+                            `O prazo da sua demanda "${demanda.nomeDemanda}" foi estendido.`, 
                             { tag: demanda.tag }
                         );
+
+                        // Enviar email para o dono da demanda
+                        const dono = usuarios.find(u => u.id === demanda.funcionarioId);
+                        if (dono) {
+                            const assunto = encodeURIComponent(`Prazo Estendido: ${demanda.nomeDemanda}`);
+                            const corpo = encodeURIComponent(`Prezado(a) ${dono.nome},\n\nO prazo da sua demanda foi estendido.\n\n--- Detalhes da Demanda ---\nNome: ${demanda.nomeDemanda}\nTAG: ${demanda.tag}\n\n--- Novo Prazo ---\n${new Date(novaDataLimite).toLocaleDateString('pt-BR')}\n\n--- Motivo da Extensão ---\n${motivo}\n\nPor favor, acesse o sistema para mais detalhes.\n\nAtenciosamente,\nGestão`);
+                            
+                            window.open(`mailto:${dono.email}?subject=${assunto}&body=${corpo}`, '_blank');
+                        }
                     }
                 });
+            } else {
+                showNotification('error', 'Erro ao Estender Prazos', 'Não foi possível estender os prazos das demandas selecionadas.');
             }
-
-            // Enviar email para o dono da demanda
-            const dono = usuarios.find(u => u.id === demanda.funcionarioId);
-            if (dono) {
-                const assunto = encodeURIComponent(`Prazo Estendido: ${demanda.nomeDemanda}`);
-                const corpo = encodeURIComponent(`Prezado(a) ${dono.nome},\n\nO prazo da sua demanda foi estendido.\n\n--- Detalhes da Demanda ---\nNome: ${demanda.nomeDemanda}\nTAG: ${demanda.tag}\n\n--- Novo Prazo ---\n${new Date(novaDataLimite).toLocaleDateString('pt-BR')}\n\n--- Motivo da Extensão ---\n${motivo}\n\nPor favor, acesse o sistema para mais detalhes.\n\nAtenciosamente,\nGestão`);
-                
-                window.open(`mailto:${dono.email}?subject=${assunto}&body=${corpo}`, '_blank');
-            }
-
-            // Enviar email para os atribuídos (se houver)
-            if (demanda.atribuidos && demanda.atribuidos.length > 0) {
-                const emailsAtribuidos = demanda.atribuidos.map(a => a.email).join(',');
-                const assunto = encodeURIComponent(`Prazo Estendido: ${demanda.nomeDemanda}`);
-                const corpo = encodeURIComponent(`Prezado(a),\n\nO prazo da demanda atribuída a você foi estendido.\n\n--- Detalhes da Demanda ---\nNome: ${demanda.nomeDemanda}\nTAG: ${demanda.tag}\n\n--- Novo Prazo ---\n${new Date(novaDataLimite).toLocaleDateString('pt-BR')}\n\n--- Motivo da Extensão ---\n${motivo}\n\nPor favor, acesse o sistema para mais detalhes.\n\nAtenciosamente,\nGestão`);
-                
-                window.open(`mailto:${emailsAtribuidos}?subject=${assunto}&body=${corpo}`, '_blank');
-            }
-
-            closeModal('extendDeadlineModal');
-            await carregarDadosDoServidor();
-            renderizarAtrasadas();
-            
-            showNotification('success', 'Prazo Estendido', `O prazo da demanda foi estendido com sucesso.`);
+        } catch (error) {
+            console.error('Erro ao estender prazos:', error);
+            showNotification('error', 'Erro ao Estender Prazos', 'Ocorreu um erro ao processar a solicitação.');
         }
     }
 
@@ -5035,23 +4983,11 @@
                 
                 const funcionario = usuarios.find(u => u.id === demanda.funcionarioId);
                 if (funcionario) {
-                    addUserNotification('success', 'Demanda Aprovada', `Sua demanda "${demanda.nomeDemanda}" foi aprovada!`, { tag: demanda.tag });
-                    
                     const assunto = encodeURIComponent(`Sua Demanda Foi Aprovada: ${demanda.nomeDemanda || demanda.descricao}`);
                     const corpo = encodeURIComponent(`Prezado(a) ${nomeFuncionario},\n\nSua demanda foi analisada e aprovada.\n\n--- Detalhes ---\nNome: ${demanda.nomeDemanda || demanda.descricao}\nTAG: ${demanda.tag}\n\nParabéns pelo excelente trabalho!\n\nAtenciosamente,\nGestão`);
                     window.open(`mailto:${funcionario.email}?subject=${assunto}&body=${corpo}`, '_blank');
-                }
-                
-                // Notificar também os atribuídos, se houver
-                if (demanda.atribuidos && Array.isArray(demanda.atribuidos)) {
-                    demanda.atribuidos.forEach(atribuido => {
-                        if (atribuido.id !== usuarioLogado.id) {
-                            addUserNotification('success', 'Demanda Aprovada', 
-                                `A demanda "${demanda.nomeDemanda}" que você estava trabalhando foi aprovada!`, 
-                                { tag: demanda.tag }
-                            );
-                        }
-                    });
+                    
+                    addUserNotification('success', 'Demanda Aprovada', `Sua demanda "${demanda.nomeDemanda}" foi aprovada!`, { tag: demanda.tag });
                 }
             }
         }
@@ -5174,7 +5110,7 @@
     function atualizarRanking() {
         const ranking = {};
         
-        usuarios.filter(u => u.role === 'funcionario' || u.role === 'gestor').forEach(func => {
+        usuarios.filter(u => u.role === 'gestor').forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
                 concluidas: 0,
@@ -5396,26 +5332,6 @@
     function inicializarImportacaoJSON() {
     }
 
-    // Inicializar notificações em tempo real
-    function inicializarNotificacoesTempoReal() {
-        setInterval(() => {
-            if (Math.random() > 0.9) {
-                const tipos = ['success', 'warning', 'info'];
-                const mensagens = [
-                    'Nova demanda concluída',
-                    'Demanda está próxima do prazo',
-                    'Funcionário disponível para nova tarefa',
-                    'Meta semanal alcançada'
-                ];
-                
-                const tipo = tipos[Math.floor(Math.random() * tipos.length)];
-                const mensagem = mensagens[Math.floor(Math.random() * mensagens.length)];
-                
-                showNotification(tipo, 'Notificação do Sistema', mensagem);
-            }
-        }, 45000);
-    }
-
     // Verificar lembretes
     function verificarLembretes() {
         const reminderContainer = document.getElementById('reminderContainer');
@@ -5511,7 +5427,7 @@
                 <div class="card-header">
                     <h3><i class="fas fa-user"></i> ${funcionario.nome}</h3>
                     <div class="card-actions">
-                        <input type="checkbox" id="${checkboxId}" class="func-checkbox" onchange="toggleFuncionarioSelection(${funcionario.nome.replace(/'/g, "\\'")})">
+                        <input type="checkbox" id="${checkboxId}" class="func-checkbox" onchange="toggleFuncionarioSelection('${funcionario.nome.replace(/'/g, "\\'")}')">
                         <label for="${checkboxId}">Selecionar</label>
                     </div>
                 </div>
@@ -5928,120 +5844,117 @@
             return 0;
         });
 
-        // Criar seções distintas para cada status
-        const secoes = {
-            pendentes: demandas.filter(d => d.status === 'pendente'),
-            atribuidas: demandas.filter(d => d.status === 'atribuida_pendente_aceitacao'),
-            analise: demandas.filter(d => d.status === 'finalizado_pendente_aprovacao')
-        };
+        // Adicionar nós para cada tipo de demanda
+        const tiposDemanda = [
+            { nome: 'Pendentes', filtro: d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao', cor: 'pending' },
+            { nome: 'Em Análise', filtro: d => d.status === 'finalizado_pendente_aprovacao', cor: 'in-analysis' },
+            { nome: 'Atrasadas', filtro: d => {
+                const dataLimite = new Date(d.dataLimite);
+                const hoje = new Date();
+                return dataLimite < hoje && d.status !== 'aprovada';
+            }, cor: 'overdue' },
+            { nome: 'Concluídas', filtro: d => d.status === 'aprovada', cor: 'completed' }
+        ];
 
-        // Adicionar seção central
-        const centralSection = document.createElement('div');
-        centralSection.className = 'mindmap-section';
-        centralSection.style.position = 'absolute';
-        centralSection.style.left = '50%';
-        centralSection.style.top = '50%';
-        centralSection.style.transform = 'translate(-50%, -50%)';
-        centralSection.style.width = '300px';
-        centralSection.style.textAlign = 'center';
-        centralSection.innerHTML = '<h3>Minhas Demandas</h3>';
-        mindmapArea.appendChild(centralSection);
+        // Adicionar nó central
+        const centralNode = document.createElement('div');
+        centralNode.className = 'mindmap-node';
+        centralNode.style.left = '50%';
+        centralNode.style.top = '20%';
+        centralNode.style.transform = 'translate(-50%, -50%)';
+        centralNode.innerHTML = '<i class="fas fa-user"></i> Minhas Demandas';
+        mindmapArea.appendChild(centralNode);
 
-        // Adicionar seção de pendentes
-        if (secoes.pendentes.length > 0) {
-            const pendentesSection = document.createElement('div');
-            pendentesSection.className = 'mindmap-section';
-            pendentesSection.style.position = 'absolute';
-            pendentesSection.style.left = '10%';
-            pendentesSection.style.top = '20%';
-            pendentesSection.style.width = '250px';
-            pendentesSection.innerHTML = '<h3>Pendentes</h3>';
+        // Adicionar nós para cada tipo de demanda
+        tiposDemanda.forEach((tipo, index) => {
+            const demandasTipo = demandas.filter(tipo.filtro);
             
-            secoes.pendentes.forEach((demanda, index) => {
-                const node = criarNoDemanda(demanda, 'pending');
-                node.style.position = 'relative';
-                node.style.marginBottom = '15px';
-                node.style.left = '0';
-                node.style.top = '0';
-                node.style.transform = 'none';
-                pendentesSection.appendChild(node);
+            if (demandasTipo.length === 0) return;
+            
+            // Adicionar nó do tipo
+            const tipoNode = document.createElement('div');
+            tipoNode.className = `mindmap-node ${tipo.cor}`;
+            
+            // Posicionar em círculo ao redor do nó central
+            const angleCircle = (index / tiposDemanda.length) * 2 * Math.PI;
+            const radius = 20; // Aumentado para melhor espaçamento
+            
+            // Calcular posição em porcentagem
+            const x = 50 + radius * Math.cos(angleCircle);
+            const y = 40 + radius * Math.sin(angleCircle); // Ajustado para não sobrepor o nó central
+            
+            tipoNode.style.left = `${x}%`;
+            tipoNode.style.top = `${y}%`;
+            tipoNode.style.transform = 'translate(-50%, -50%)'; // Centralizar o nó
+            tipoNode.innerHTML = `<strong>${tipo.nome}</strong><br><small>${demandasTipo.length} demandas</small>`;
+            
+            // Adicionar evento de clique para filtrar
+            tipoNode.addEventListener('click', () => {
+                document.getElementById('mindmapFilter').value = 
+                    tipo.nome === 'Pendentes' ? 'pendente' :
+                    tipo.nome === 'Em Análise' ? 'finalizado_pendente_aprovacao' :
+                    tipo.nome === 'Atrasadas' ? 'atrasado' :
+                    tipo.nome === 'Concluídas' ? 'aprovada' : 'todos';
+                atualizarMindmap();
             });
             
-            mindmapArea.appendChild(pendentesSection);
-        }
-
-        // Adicionar seção de atribuídas
-        if (secoes.atribuidas.length > 0) {
-            const atribuidasSection = document.createElement('div');
-            atribuidasSection.className = 'mindmap-section';
-            atribuidasSection.style.position = 'absolute';
-            atribuidasSection.style.right = '10%';
-            atribuidasSection.style.top = '20%';
-            atribuidasSection.style.width = '250px';
-            atribuidasSection.innerHTML = '<h3>Atribuídas</h3>';
-            
-            secoes.atribuidas.forEach((demanda, index) => {
-                const node = criarNoDemanda(demanda, 'in-analysis');
-                node.style.position = 'relative';
-                node.style.marginBottom = '15px';
-                node.style.left = '0';
-                node.style.top = '0';
-                node.style.transform = 'none';
-                atribuidasSection.appendChild(node);
+            // Adicionar evento de mouseover para mostrar tooltip
+            tipoNode.addEventListener('mouseenter', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.innerHTML = `<strong>${tipo.nome}</strong><br>${demandasTipo.length} demandas`;
+                    tooltip.style.left = e.pageX + 10 + 'px';
+                    tooltip.style.top = e.pageY + 10 + 'px';
+                    tooltip.classList.add('show');
+                }
             });
             
-            mindmapArea.appendChild(atribuidasSection);
-        }
-
-        // Adicionar seção de análise
-        if (secoes.analise.length > 0) {
-            const analiseSection = document.createElement('div');
-            analiseSection.className = 'mindmap-section';
-            analiseSection.style.position = 'absolute';
-            analiseSection.style.left = '50%';
-            analiseSection.style.bottom = '10%';
-            analiseSection.style.width = '300px';
-            analiseSection.style.transform = 'translateX(-50%)';
-            analiseSection.innerHTML = '<h3>Em Análise</h3>';
-            
-            secoes.analise.forEach((demanda, index) => {
-                const node = criarNoDemanda(demanda, 'in-analysis');
-                node.style.position = 'relative';
-                node.style.marginBottom = '15px';
-                node.style.left = '0';
-                node.style.top = '0';
-                node.style.transform = 'none';
-                analiseSection.appendChild(node);
+            tipoNode.addEventListener('mouseleave', () => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.classList.remove('show');
+                }
             });
             
-            mindmapArea.appendChild(analiseSection);
-        }
-    }
-
-    // Função auxiliar para criar nó de demanda
-    function criarNoDemanda(demanda, statusClass) {
-        const node = document.createElement('div');
-        node.className = `mindmap-node ${statusClass}`;
-        
-        // Definir cor com base na prioridade
-        if (demanda.prioridade === 'Importante') {
-            node.classList.add('high-priority');
-        } else if (demanda.prioridade === 'Média') {
-            node.classList.add('medium-priority');
-        } else {
-            node.classList.add('low-priority');
-        }
-        
-        node.innerHTML = `<strong>${demanda.nomeDemanda || demanda.descricao}</strong><br><small>${demanda.prioridade}</small>`;
-        
-        // Adicionar evento de clique para ver detalhes
-        node.addEventListener('click', () => verDetalhes(demanda.id));
-        
-        // Adicionar evento de mouseover para mostrar tooltip
-        node.addEventListener('mouseenter', (e) => showTooltip(e, demanda));
-        node.addEventListener('mouseleave', hideTooltip);
-        
-        return node;
+            // Tornar arrastável
+            makeDraggable(tipoNode);
+            
+            mindmapArea.appendChild(tipoNode);
+            
+            // Adicionar nós para cada demanda do tipo
+            demandasTipo.forEach((demanda, idx) => {
+                const node = document.createElement('div');
+                node.className = `mindmap-node ${tipo.cor}`;
+                
+                // Posicionar em círculo ao redor do nó do tipo
+                const angleDemanda = (idx / demandasTipo.length) * 2 * Math.PI;
+                const radiusDemanda = 15; // Aumentado para melhor espaçamento
+                
+                // Calcular posição em porcentagem
+                const xDemanda = x + radiusDemanda * Math.cos(angleDemanda);
+                const yDemanda = y + radiusDemanda * Math.sin(angleDemanda);
+                
+                node.style.left = `${xDemanda}%`;
+                node.style.top = `${yDemanda}%`;
+                node.style.transform = 'translate(-50%, -50%)'; // Centralizar o nó
+                node.innerHTML = `<strong>${demanda.nomeDemanda || demanda.descricao}</strong><br><small>${demanda.prioridade}</small>`;
+                
+                // Adicionar evento de clique para ver detalhes
+                node.addEventListener('click', () => verDetalhes(demanda.id));
+                
+                // Adicionar evento de mouseover para mostrar tooltip
+                node.addEventListener('mouseenter', (e) => showTooltip(e, demanda));
+                node.addEventListener('mouseleave', hideTooltip);
+                
+                // Tornar arrastável
+                makeDraggable(node);
+                
+                // Adicionar ID ao nó para referência
+                node.id = `node-${demanda.id}`;
+                
+                mindmapArea.appendChild(node);
+            });
+        });
     }
 
     // Filtrar mapa mental
@@ -6164,14 +6077,12 @@
         const demanda = todasDemandas.find(d => d.id === demandaId);
         if (!demanda) return;
 
-        document.getElementById('reassignDemandaId').value = demanda.nomeDemanda || demanda.descricao;
         document.getElementById('reassignForm').reset();
         showModal('reassignModal', 'Reatribuir Demanda');
     }
 
     // Salvar reatribuição
     async function salvarReatribuicao() {
-        const demandaId = parseInt(document.getElementById('reassignDemandaId').value);
         const novoAtribuidoId = document.getElementById('reassignTo').value;
         const motivo = document.getElementById('reassignReason').value;
 
@@ -6180,66 +6091,64 @@
             return;
         }
 
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
+        // Processar cada demanda selecionada
+        const promises = Array.from(selectedOverdueDemands).map(async (demandaId) => {
+            const demanda = todasDemandas.find(d => d.id === demandaId);
+            if (!demanda) return;
 
-        const novoAtribuido = usuarios.find(u => u.id == novoAtribuidoId);
-        if (!novoAtribuido) return;
+            const novoAtribuido = usuarios.find(u => u.id == novoAtribuidoId);
+            if (!novoAtribuido) return;
 
-        // Adicionar o novo atribuído à lista existente
-        let atribuidosAtuais = [];
-        try {
-            atribuidosAtuais = JSON.parse(demanda.atribuidos || '[]');
-        } catch (e) {
-            atribuidosAtuais = [];
-        }
-        
-        // Verificar se já não está atribuído
-        if (!atribuidosAtuais.find(a => a.id == novoAtribuidoId)) {
-            atribuidosAtuais.push({
+            // Adicionar o novo atribuído à lista
+            const novosAtribuidos = [...(demanda.atribuidos || []), {
                 id: novoAtribuido.id,
                 nome: novoAtribuido.nome,
                 email: novoAtribuido.email
-            });
-        }
+            }];
 
-        // Atualizar demanda
-        const sql = `
-            UPDATE demandas SET
-            atribuidos = ?,
-            status = ?,
-            comentarioGestor = ?,
-            dataAtualizacao = ?
-            WHERE id = ?
-        `;
-        
-        const dadosAtualizados = {
-            atribuidos: atribuidosAtuais,
-            status: 'atribuida_pendente_aceitacao',
-            comentarioGestor: `Reatribuído em ${new Date().toLocaleDateString('pt-BR')} para ${novoAtribuido.nome}: ${motivo}`,
-            dataAtualizacao: new Date().toISOString()
-        };
+            const dadosAtualizados = {
+                atribuidos: novosAtribuidos,
+                status: 'atribuida_pendente_aceitacao'
+            };
 
-        const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
+            return await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
+        });
 
-        if (sucesso) {
-            // Notificar o novo atribuído
-            addUserNotification('info', 'Nova Tarefa Atribuída', 
-                `A tarefa "${demanda.nomeDemanda}" foi atribuída a você. Motivo: ${motivo}`, 
-                { tag: demanda.tag }
-            );
-
-            // Enviar email para o novo atribuído
-            const assunto = encodeURIComponent(`Nova Tarefa Atribuída: ${demanda.nomeDemanda}`);
-            const corpo = encodeURIComponent(`Prezado(a) ${novoAtribuido.nome},\n\nUma tarefa foi reatribuída a você:\n\n--- Detalhes da Tarefa ---\nNome: ${demanda.nomeDemanda}\nDescrição: ${demanda.descricao}\nCategoria: ${demanda.categoria}\nPrioridade: ${demanda.prioridade}\nData Limite: ${new Date(demanda.dataLimite).toLocaleDateString('pt-BR')}\nTAG: ${demanda.tag}\n\nMotivo da reatribuição: ${motivo}\n\nPor favor, acesse o sistema para aceitar ou recusar esta tarefa.\n\nAtenciosamente,\nGestão`);
+        try {
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r).length;
             
-            window.open(`mailto:${novoAtribuido.email}?subject=${assunto}&body=${corpo}`, '_blank');
+            if (successCount > 0) {
+                showNotification('success', 'Demandas Reatribuídas', `${successCount} demandas foram reatribuídas com sucesso.`);
+                closeModal('reassignModal');
+                await carregarDadosDoServidor();
+                renderizarAtrasadas();
+                
+                // Notificar os novos atribuídos
+                const novoAtribuido = usuarios.find(u => u.id == novoAtribuidoId);
+                if (novoAtribuido) {
+                    Array.from(selectedOverdueDemands).forEach(demandaId => {
+                        const demanda = todasDemandas.find(d => d.id === demandaId);
+                        if (demanda) {
+                            addUserNotification('info', 'Nova Tarefa Atribuída', 
+                                `A tarefa "${demanda.nomeDemanda}" foi atribuída a você. Motivo: ${motivo}`, 
+                                { tag: demanda.tag }
+                            );
 
-            closeModal('reassignModal');
-            await carregarDadosDoServidor();
-            renderizarAtrasadas();
-            
-            showNotification('success', 'Demanda Reatribuída', `A demanda foi reatribuída para ${novoAtribuido.nome}.`);
+                            // Enviar email para o novo atribuído
+                            const assunto = encodeURIComponent(`Nova Tarefa Atribuída: ${demanda.nomeDemanda}`);
+                            const corpo = encodeURIComponent(`Prezado(a) ${novoAtribuido.nome},\n\nUma tarefa foi reatribuída a você:\n\n--- Detalhes da Tarefa ---\nNome: ${demanda.nomeDemanda}\nDescrição: ${demanda.descricao}\nCategoria: ${demanda.categoria}\nPrioridade: ${demanda.prioridade}\nData Limite: ${new Date(demanda.dataLimite).toLocaleDateString('pt-BR')}\nTAG: ${demanda.tag}\n\nMotivo da reatribuição: ${motivo}\n\nPor favor, acesse o sistema para aceitar ou recusar esta tarefa.\n\nAtenciosamente,\nGestão`);
+                            
+                            window.open(`mailto:${novoAtribuido.email}?subject=${assunto}&body=${corpo}`, '_blank');
+                        }
+                    });
+                }
+            } else {
+                showNotification('error', 'Erro ao Reatribuir', 'Não foi possível reatribuir as demandas selecionadas.');
+            }
+        } catch (error) {
+            console.error('Erro ao reatribuir demandas:', error);
+            showNotification('error', 'Erro ao Reatribuir', 'Ocorreu um erro ao processar a solicitação.');
         }
     }
 
@@ -6333,19 +6242,6 @@
             noteElement.className = 'note-item';
             noteElement.style.borderLeft = `4px solid ${note.color || '#3498db'}`;
             
-            let audioContent = '';
-            if (note.audioData) {
-                audioContent = `
-                    <div class="audio-note">
-                        <p><i class="fas fa-microphone"></i> Nota de Áudio</p>
-                        <audio controls class="audio-player">
-                            <source src="${note.audioData}" type="audio/wav">
-                            Seu navegador não suporta áudio.
-                        </audio>
-                    </div>
-                `;
-            }
-            
             noteElement.innerHTML = `
                 <div class="note-header">
                     <h4>${note.title}</h4>
@@ -6357,7 +6253,6 @@
                     </div>
                 </div>
                 <div class="note-content">${note.content.replace(/\n/g, '<br>')}</div>
-                ${audioContent}
             `;
             
             notesContainer.appendChild(noteElement);
@@ -6388,8 +6283,7 @@
             color,
             date: new Date().toISOString(),
             createdBy: usuarioLogado.id,
-            assignedTo: assignedTo ? parseInt(assignedTo) : null,
-            audioData: audioBlob ? URL.createObjectURL(audioBlob) : null
+            assignedTo: assignedTo ? parseInt(assignedTo) : null
         };
         
         notes.unshift(newNote);
@@ -6409,10 +6303,6 @@
                 );
             }
         }
-        
-        // Limpar dados de áudio
-        audioBlob = null;
-        audioChunks = [];
     }
 
     function editNote(id) {
@@ -6459,54 +6349,6 @@
         renderizarAnotacoes();
         
         showNotification('info', 'Anotação Excluída', 'A anotação foi excluída com sucesso.');
-    }
-
-    // Gravação de voz
-    async function toggleVoiceRecording() {
-        const voiceBtn = document.getElementById('voiceNoteBtn');
-        
-        if (!isRecording) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    audioChunks.push(event.data);
-                };
-                
-                mediaRecorder.onstop = () => {
-                    audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    
-                    // Adicionar o áudio à anotação
-                    const audioElement = document.createElement('audio');
-                    audioElement.src = audioUrl;
-                    audioElement.controls = true;
-                    
-                    // Inserir o elemento de áudio após o textarea
-                    const contentArea = document.getElementById('noteContent');
-                    const existingContent = contentArea.value;
-                    contentArea.value = existingContent + '\n\n[Áudio gravado: ' + new Date().toLocaleString() + ']\n';
-                    
-                    voiceBtn.classList.remove('recording');
-                    isRecording = false;
-                    
-                    showNotification('success', 'Áudio Gravado', 'O áudio foi adicionado à anotação.');
-                };
-                
-                mediaRecorder.start();
-                voiceBtn.classList.add('recording');
-                isRecording = true;
-                
-                showNotification('info', 'Gravando Áudio', 'Gravando áudio... Clique novamente para parar.');
-            } catch (error) {
-                console.error('Erro ao acessar o microfone:', error);
-                showNotification('error', 'Erro de Gravação', 'Não foi possível acessar o microfone. Verifique as permissões do navegador.');
-            }
-        } else {
-            mediaRecorder.stop();
-        }
     }
 
     // Feedbacks
@@ -6723,6 +6565,16 @@
         atualizarRanking();
     }
 
+    // Função para atualizar a interface automaticamente
+    async function atualizarInterface() {
+        await carregarDadosDoServidor();
+        renderizarTodasAsAbas();
+        atualizarBadges();
+        atualizarDashboard();
+        atualizarRanking();
+        atualizarGraficos();
+    }
+
     // Adicionar listeners para os novos filtros de mês e ano
     document.addEventListener('DOMContentLoaded', () => {
         // Adicionar listeners para os filtros de mês que já existem
@@ -6799,7 +6651,7 @@
     function exportRanking() {
         const ranking = {};
         
-        usuarios.filter(u => u.role === 'funcionario').forEach(func => {
+        usuarios.filter(u => u.role === 'gestor').forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
                 email: func.email,
@@ -6867,15 +6719,6 @@
             document.body.removeChild(a);
             showNotification('success', 'Gráfico Baixado', `O gráfico de ${chartType} foi baixado.`);
         }
-    }
-
-    // Função para atualizar automaticamente após alterações
-    function atualizarAposAlteracao() {
-        // Pequeno delay para garantir que os dados foram salvos
-        setTimeout(() => {
-            atualizarInterface();
-            showNotification('success', 'Atualizado', 'A interface foi atualizada automaticamente.');
-        }, 500);
     }
 </script>
 
