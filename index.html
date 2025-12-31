@@ -1231,7 +1231,7 @@
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             color: white;
             padding: 5px 10px;
             border-radius: 5px;
@@ -1404,7 +1404,7 @@
             margin-bottom: 20px;
             min-height: 600px;
             position: relative;
-            padding-bottom: 80px; /* Espaço extra para os botões */
+            padding-top: 100px; /* Espaço extra para os botões */
         }
 
         .mindmap-node {
@@ -2305,7 +2305,7 @@
 
             <div id="mindmap" class="tab-content">
                 <div class="mindmap-container">
-                    <div class="card-header">
+                    <div class="card-header" style="position: absolute; top: 20px; left: 20px; right: 20px; z-index: 100;">
                         <h2><i class="fas fa-project-diagram"></i> Mapa Mental de Prioridades</h2>
                         <div class="card-actions">
                             <select id="mindmapFilter" onchange="filterMindmap()">
@@ -2314,6 +2314,14 @@
                                 <option value="finalizado_pendente_aprovacao">Em Análise</option>
                                 <option value="aprovada">Concluídas</option>
                                 <option value="atrasado">Atrasadas</option>
+                            </select>
+                            <select id="mindmapFuncFilter" onchange="filterMindmap()">
+                                <option value="todos">Todos os Funcionários</option>
+                            </select>
+                            <select id="mindmapLocalFilter" onchange="filterMindmap()">
+                                <option value="todos">Todos os Locais</option>
+                                <option value="Lundin">Lundin</option>
+                                <option value="R&D">R&D</option>
                             </select>
                             <select id="mindmapSort" onchange="sortMindmap()">
                                 <option value="prioridade">Ordenar por Prioridade</option>
@@ -3204,20 +3212,20 @@
 
     // Carregar funcionários nos selects
     function carregarFuncionariosNosSelect() {
-        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'reassignTo', 'noteAssignTo'];
+        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'reassignTo', 'noteAssignTo', 'mindmapFuncFilter', 'mindmapLocalFilter'];
         
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
                 select.innerHTML = '';
                 
-                if (selectId === 'filtroFuncionario' || selectId === 'colabFuncFilter') {
+                if (selectId === 'filtroFuncionario' || selectId === 'colabFuncFilter' || selectId === 'mindmapFuncFilter') {
                     const defaultOption = new Option('Todos os Funcionários', 'todos');
                     select.add(defaultOption);
                 } else if (selectId === 'cobrancaFuncionario') {
                     const defaultOption = new Option('Todos os Funcionários com Demandas Atrasadas', 'todos');
                     select.add(defaultOption);
-                } else if (selectId === 'colabLocalFilter') {
+                } else if (selectId === 'colabLocalFilter' || selectId === 'mindmapLocalFilter') {
                     const defaultOption = new Option('Todos os Locais', 'todos');
                     select.add(defaultOption);
                     const optionLundin = new Option('Lundin', 'Lundin');
@@ -3493,7 +3501,9 @@
         
         // Para gestores, mostrar todas as demandas
         if (usuarioLogado.role === 'gestor') {
-            return todasDemandas;
+            // Alteração: No login do gestor, as demandas dos colaboradores não devem ficar na aba "Minhas Demandas"
+            // Apenas mostrar as demandas criadas pelo próprio gestor
+            return todasDemandas.filter(d => d.funcionarioId === usuarioLogado.id);
         }
         
         // Para funcionários, as demandas que eles criaram ou que foram atribuídas a eles
@@ -5026,8 +5036,8 @@
     function atualizarRanking() {
         const ranking = {};
         
-        // Alteração: Incluir todos os usuários (funcionários e gestores) no ranking
-        usuarios.forEach(func => {
+        // Alteração: No ranking, mostrar apenas os gestores
+        usuarios.filter(u => u.role === 'gestor').forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
                 concluidas: 0,
@@ -5729,23 +5739,35 @@
         mindmapArea.innerHTML = '';
 
         const filter = document.getElementById('mindmapFilter')?.value || 'todos';
+        const funcFilter = document.getElementById('mindmapFuncFilter')?.value || 'todos';
+        const localFilter = document.getElementById('mindmapLocalFilter')?.value || 'todos';
         const sort = document.getElementById('mindmapSort')?.value || 'prioridade';
 
-        let demandas = getDemandasParaUsuarioLogado().filter(d => 
-            d.status !== 'aprovada' && d.status !== 'reprovada'
-        );
-
-        // Aplicar filtro
-        if (filter !== 'todos') {
-            if (filter === 'atrasado') {
-                demandas = demandas.filter(d => {
-                    const dataLimite = new Date(d.dataLimite);
-                    const hoje = new Date();
-                    return dataLimite < hoje;
-                });
-            } else {
-                demandas = demandas.filter(d => d.status === filter);
-            }
+        // Alteração: No mapa mental, mostrar todas as demandas dos funcionários para o gestor
+        let demandas;
+        if (usuarioLogado && usuarioLogado.role === 'gestor') {
+            demandas = todasDemandas.filter(d => {
+                // Filtrar por funcionário se necessário
+                if (funcFilter !== 'todos' && d.funcionarioId != funcFilter) return false;
+                
+                // Filtrar por local se necessário
+                if (localFilter !== 'todos' && d.local !== localFilter) return false;
+                
+                // Filtrar por status
+                if (filter !== 'todos') {
+                    if (filter === 'atrasado') {
+                        const dataLimite = new Date(d.dataLimite);
+                        const hoje = new Date();
+                        return dataLimite < hoje && d.status !== 'aprovada';
+                    } else {
+                        return d.status === filter;
+                    }
+                }
+                
+                return true;
+            });
+        } else {
+            demandas = getDemandasParaUsuarioLogado().filter(d => d.status !== 'aprovada' && d.status !== 'reprovada');
         }
 
         // Aplicar ordenação
@@ -6363,7 +6385,7 @@
     function exportRanking() {
         const ranking = {};
         
-        usuarios.forEach(func => {
+        usuarios.filter(u => u.role === 'gestor').forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
                 email: func.email,
