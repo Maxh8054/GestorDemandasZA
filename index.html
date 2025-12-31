@@ -5063,5 +5063,1375 @@
                             }
                         }
                     }
-                } else if (demanda.status === 'pendente' || deman
-... (continua)
+                                } else if (demanda.status === 'pendente' || demanda.status === 'finalizado_pendente_aprovacao' || demanda.status === 'reprovada' || demanda.status === 'reprovada_pelo_atribuido') {
+                    ranking[demanda.funcionarioId].andamento++;
+                }
+                
+                const dataLimite = new Date(demanda.dataLimite);
+                const hoje = new Date();
+                if (dataLimite < hoje && demanda.status !== 'aprovada') {
+                    ranking[demanda.funcionarioId].atrasadas++;
+                }
+            }
+
+            // A verificação agora é segura, pois normalizarDadosDemanda garante que é um array
+            if (Array.isArray(demanda.atribuidos)) {
+                demanda.atribuidos.forEach(atribuido => {
+                    if (ranking[atribuido.id]) {
+                        if (demanda.status === 'aprovada') {
+                            ranking[atribuido.id].concluidas++;
+                            
+                            if (demanda.complexidade === 'Fácil') ranking[atribuido.id].facil++;
+                            else if (demanda.complexidade === 'Médio') ranking[atribuido.id].medio++;
+                            else if (demanda.complexidade === 'Difícil') ranking[atribuido.id].dificil++;
+                            
+                            if (demanda.dataCriacao && demanda.dataConclusao) {
+                                const diasEntrega = Math.ceil((new Date(demanda.dataConclusao) - new Date(demanda.dataCriacao)) / (1000 * 60 * 60 * 24));
+                                ranking[atribuido.id].totalDiasEntrega += diasEntrega;
+                                
+                                if (demanda.dataLimite) {
+                                    if (new Date(demanda.dataConclusao) <= new Date(demanda.dataLimite)) {
+                                        ranking[atribuido.id].entregasAntesPrazo++;
+                                    } else {
+                                        ranking[atribuido.id].entregasAposPrazo++;
+                                    }
+                                }
+                            }
+                        } else if (demanda.status === 'pendente' || demanda.status === 'finalizado_pendente_aprovacao' || demanda.status === 'reprovada' || demanda.status === 'reprovada_pelo_atribuido') {
+                            ranking[atribuido.id].andamento++;
+                        }
+                        
+                        const dataLimite = new Date(demanda.dataLimite);
+                        const hoje = new Date();
+                        if (dataLimite < hoje && demanda.status !== 'aprovada') {
+                            ranking[atribuido.id].atrasadas++;
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Calcular tempo médio de entrega
+        Object.keys(ranking).forEach(funcId => {
+            if (ranking[funcId].concluidas > 0) {
+                ranking[funcId].tempoMedioEntrega = Math.round(ranking[funcId].totalDiasEntrega / ranking[funcId].concluidas);
+            }
+        });
+        
+        const rankingArray = Object.values(ranking).sort((a, b) => b.concluidas - a.concluidas);
+        
+        const rankingList = document.getElementById('rankingList');
+        if (rankingList) {
+            rankingList.innerHTML = '';
+            
+            rankingArray.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'ranking-item';
+                
+                const percentualAntesPrazo = item.concluidas > 0 ? Math.round((item.entregasAntesPrazo / item.concluidas) * 100) : 0;
+                
+                li.innerHTML = `
+                    <div class="ranking-position">${index + 1}</div>
+                    <div class="ranking-info">
+                        <strong>${item.nome}</strong>
+                        <div class="ranking-stats">
+                            <div class="ranking-stat">
+                                <span class="stat-badge concluidas">${item.concluidas} concluídas</span>
+                            </div>
+                            <div class="ranking-stat">
+                                <span class="stat-badge andamento">${item.andamento} em andamento</span>
+                            </div>
+                            <div class="ranking-stat">
+                                <span class="stat-badge atrasadas">${item.atrasadas} atrasadas</span>
+                            </div>
+                        </div>
+                        <div class="ranking-stats">
+                            <div class="ranking-stat">
+                                <span class="stat-badge">Fácil: ${item.facil}</span>
+                            </div>
+                            <div class="ranking-stat">
+                                <span class="stat-badge">Médio: ${item.medio}</span>
+                            </div>
+                            <div class="ranking-stat">
+                                <span class="stat-badge">Difícil: ${item.dificil}</span>
+                            </div>
+                        </div>
+                        <div class="ranking-stats">
+                            <div class="ranking-stat">
+                                <span class="stat-badge">Tempo médio: ${item.tempoMedioEntrega} dias</span>
+                            </div>
+                            <div class="ranking-stat">
+                                <span class="stat-badge">Pontualidade: ${percentualAntesPrazo}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                rankingList.appendChild(li);
+            });
+        }
+    }
+
+    // Validar data limite
+    function validateDeadline() {
+        const deadlineInput = document.getElementById('dataLimiteInput');
+        if (!deadlineInput) return;
+        
+        const deadline = new Date(deadlineInput.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (deadline < today) {
+            showNotification('warning', 'Data Inválida', 'A data limite não pode ser anterior a hoje');
+            deadlineInput.value = '';
+        }
+    }
+
+    // Alternar campos de rotina
+    function toggleRoutineFields() {
+        const rotinaCheckbox = document.getElementById('rotinaCheckbox');
+        const diasSemanaGroup = document.getElementById('diasSemanaGroup');
+        
+        if (diasSemanaGroup) {
+            diasSemanaGroup.style.display = rotinaCheckbox.checked ? 'block' : 'none';
+        }
+    }
+
+    // Mostrar notificação
+    function showNotification(type, title, message) {
+        const notification = document.getElementById('notification');
+        const titleElement = document.getElementById('notificationTitle');
+        const messageElement = document.getElementById('notificationMessage');
+        
+        if (!notification || !titleElement || !messageElement) {
+            console.error('Elementos de notificação não encontrados!');
+            return;
+        }
+        
+        notification.className = `notification ${type} show`;
+        titleElement.textContent = title;
+        messageElement.textContent = message;
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 5000);
+    }
+
+    // Resetar filtros
+    function resetFilters() {
+        document.getElementById('filtroFuncionario').value = 'todos';
+        document.getElementById('filtroPeriodo').value = '7';
+        document.getElementById('filtroCategoria').value = 'todas';
+        document.getElementById('filtroPrioridade').value = 'todas';
+        
+        filtrarDashboard();
+        showNotification('info', 'Filtros Resetados', 'Todos os filtros foram resetados');
+    }
+
+    // Filtrar dashboard
+    function filtrarDashboard() {
+        filtroFuncionarioAtual = document.getElementById('filtroFuncionario').value;
+        atualizarDashboard();
+        atualizarGraficos();
+    }
+
+    // Drill down
+    function drillDown(type) {
+        showNotification('info', 'Análise Detalhada', `Analisando detalhes de ${type}...`);
+        
+        setTimeout(() => {
+            switchTab('pendentes');
+        }, 1000);
+    }
+
+    // Inicializar importação JSON
+    function inicializarImportacaoJSON() {
+    }
+
+    // Verificar lembretes
+    function verificarLembretes() {
+        const reminderContainer = document.getElementById('reminderContainer');
+        const reminderList = document.getElementById('reminderList');
+        
+        if (!reminderContainer || !reminderList) return;
+        
+        const agora = new Date();
+        const amanha = new Date(agora);
+        amanha.setDate(amanha.getDate() + 1);
+        
+        // Filtrar demandas que vencem nas próximas 24 horas
+        const demandasProximas = getDemandasParaUsuarioLogado().filter(d => {
+            if (d.status === 'aprovada' || d.status === 'reprovada') return false;
+            
+            const dataLimite = new Date(d.dataLimite);
+            return dataLimite >= agora && dataLimite <= amanha;
+        });
+        
+        if (demandasProximas.length > 0) {
+            reminderContainer.style.display = 'block';
+            reminderList.innerHTML = '';
+            
+            demandasProximas.forEach(demanda => {
+                const reminderItem = document.createElement('div');
+                reminderItem.className = 'reminder-item';
+                
+                const dataLimite = new Date(demanda.dataLimite);
+                const horasRestantes = Math.floor((dataLimite - agora) / (1000 * 60 * 60));
+                
+                reminderItem.innerHTML = `
+                    <strong>${demanda.nomeDemanda}</strong>
+                    <p>Vence em ${horasRestantes} horas</p>
+                    <small>TAG: ${demanda.tag}</small>
+                `;
+                
+                reminderList.appendChild(reminderItem);
+            });
+        } else {
+            reminderContainer.style.display = 'none';
+        }
+    }
+
+    // Renderizar cobrança
+    function renderizarCobranca() {
+        const cobrancaContainer = document.getElementById('cobrancaContainer');
+        if (!cobrancaContainer) return;
+        
+        const funcionarioFilter = document.getElementById('cobrancaFuncionario').value;
+        const prioridadeFilter = document.getElementById('cobrancaPrioridade').value;
+        
+        let atrasadas = getDemandasParaUsuarioLogado().filter(d => {
+            if (d.status === 'aprovada') return false;
+            const dataLimite = new Date(d.dataLimite);
+            const hoje = new Date();
+            return dataLimite < hoje;
+        });
+        
+        if (funcionarioFilter !== 'todos') {
+            atrasadas = atrasadas.filter(d => d.funcionarioId == funcionarioFilter);
+        }
+        
+        if (prioridadeFilter !== 'todas') {
+            atrasadas = atrasadas.filter(d => d.prioridade === prioridadeFilter);
+        }
+        
+        cobrancaContainer.innerHTML = '';
+        
+        if (atrasadas.length === 0) {
+            cobrancaContainer.innerHTML = '<p>Nenhuma demanda atrasada encontrada com os filtros selecionados.</p>';
+            return;
+        }
+        
+        const demandasPorFuncionario = {};
+        atrasadas.forEach(demanda => {
+            if (!demandasPorFuncionario[demanda.funcionarioId]) {
+                demandasPorFuncionario[demanda.funcionarioId] = {
+                    nome: demanda.nomeFuncionario,
+                    email: demanda.emailFuncionario,
+                    demandas: []
+                };
+            }
+            demandasPorFuncionario[demanda.funcionarioId].demandas.push(demanda);
+        });
+        
+        Object.values(demandasPorFuncionario).forEach(funcionario => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const checkboxId = `func_${funcionario.nome.replace(/\s+/g, '_')}`;
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3><i class="fas fa-user"></i> ${funcionario.nome}</h3>
+                    <div class="card-actions">
+                        <input type="checkbox" id="${checkboxId}" class="func-checkbox" onchange="toggleFuncionarioSelection('${funcionario.nome.replace(/'/g, "\\'")}')">
+                        <label for="${checkboxId}">Selecionar</label>
+                    </div>
+                </div>
+                <div class="demandas-list">
+                    ${funcionario.demandas.map(demanda => {
+                        const dataLimite = new Date(demanda.dataLimite);
+                        const hoje = new Date();
+                        const diasAtraso = Math.floor((hoje - dataLimite) / (1000 * 60 * 60 * 24));
+                        const tempoAtraso = calcularTempoRestante(demanda.dataLimite);
+                        
+                        return `
+                            <div class="demanda-item atrasado">
+                                <div class="demanda-info">
+                                    <strong>${demanda.nomeDemanda || demanda.descricao}</strong>
+                                    <small>Categoria: ${demanda.categoria} | Prioridade: ${demanda.prioridade} | Data Limite: ${dataLimite.toLocaleDateString('pt-BR')}</small>
+                                    <small><strong>TAG:</strong> ${demanda.tag}</small>
+                                    <div class="time-remaining">ATRASADA HÁ ${tempoAtraso}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="card-actions">
+                    <button class="success" onclick="enviarEmailCobranca('${funcionario.nome}', '${funcionario.email}')">
+                        <i class="fas fa-envelope"></i> Enviar Email de Cobrança
+                    </button>
+                </div>
+            `;
+            
+            cobrancaContainer.appendChild(card);
+        });
+        
+        atualizarPreviaEmail();
+    }
+
+    // Filtrar cobrança
+    function filtrarCobranca() {
+        renderizarCobranca();
+    }
+
+    // Resetar filtros de cobrança
+    function resetFiltrosCobranca() {
+        document.getElementById('cobrancaFuncionario').value = 'todos';
+        document.getElementById('cobrancaPrioridade').value = 'todas';
+        renderizarCobranca();
+    }
+
+    // Selecionar todas as atrasadas
+    function selectAllOverdue() {
+        document.querySelectorAll('.func-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
+
+    // Desmarcar todas as atrasadas
+    function deselectAllOverdue() {
+        document.querySelectorAll('.func-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // Alternar seleção de funcionário
+    function toggleFuncionarioSelection(nomeFuncionario) {
+        console.log(`Seleção alterada para: ${nomeFuncionario}`);
+    }
+
+    // Enviar email de cobrança
+    function enviarEmailCobranca(nomeFuncionario, emailFuncionario) {
+        const demandasAtrasadas = getDemandasParaUsuarioLogado().filter(d => {
+            if (d.status === 'aprovada') return false;
+            if (d.nomeFuncionario !== nomeFuncionario) return false;
+            const dataLimite = new Date(d.dataLimite);
+            const hoje = new Date();
+            return dataLimite < hoje;
+        });
+        
+        if (demandasAtrasadas.length === 0) {
+            showNotification('warning', 'Nenhuma Demanda Atrasada', `${nomeFuncionario} não possui demandas atrasadas.`);
+            return;
+        }
+        
+        let corpoEmail = `Prezado(a) ${nomeFuncionario},\n\n`;
+        corpoEmail += `Identificamos que você possui ${demandasAtrasadas.length} demanda(s) em atraso. Por favor, verifique e regularize a situação o mais breve possível.\n\n`;
+        corpoEmail += `--- Demandas em Atraso ---\n\n`;
+        
+        demandasAtrasadas.forEach(demanda => {
+            const dataLimite = new Date(demanda.dataLimite);
+            const hoje = new Date();
+            const diasAtraso = Math.floor((hoje - dataLimite) / (1000 * 60 * 60 * 24));
+            const tempoAtraso = calcularTempoRestante(demanda.dataLimite);
+            
+            corpoEmail += `• ${demanda.nomeDemanda || demanda.descricao}\n`;
+            corpoEmail += `  Categoria: ${demanda.categoria}\n`;
+            corpoEmail += `  Prioridade: ${demanda.prioridade}\n`;
+            corpoEmail += `  Data Limite: ${dataLimite.toLocaleDateString('pt-BR')}\n`;
+            corpoEmail += `  Dias de Atraso: ${diasAtraso}\n`;
+            corpoEmail += `  TAG: ${demanda.tag}\n\n`;
+        });
+        
+        corpoEmail += `Por favor, acesse o sistema para atualizar o status das demandas ou entrar em contato caso necessite de suporte.\n\n`;
+        corpoEmail += `Atenciosamente,\nGestão`;
+        
+        const assunto = encodeURIComponent(`Cobrança de Demandas em Atraso - ${demandasAtrasadas.length} pendente(s)`);
+        const corpo = encodeURIComponent(corpoEmail);
+        
+        window.open(`mailto:${emailFuncionario}?subject=${assunto}&body=${corpo}`, '_blank');
+        
+        showNotification('success', 'Email de Cobrança', `Email de cobrança para ${nomeFuncionario} foi aberto para envio.`);
+    }
+
+    // Enviar emails em lote
+    function sendBulkEmail() {
+        const checkboxes = document.querySelectorAll('.func-checkbox:checked');
+        
+        if (checkboxes.length === 0) {
+            showNotification('warning', 'Nenhum Funcionário Selecionado', 'Por favor, selecione pelo menos um funcionário para enviar emails em lote.');
+            return;
+        }
+        
+        if (!confirm(`Tem certeza que deseja enviar emails de cobrança para ${checkboxes.length} funcionário(s)?`)) {
+            return;
+        }
+        
+        const emails = [];
+        checkboxes.forEach(checkbox => {
+            const card = checkbox.closest('.card');
+            const nome = card.querySelector('h3').textContent.trim();
+            const funcionario = usuarios.find(u => u.nome === nome);
+            if (funcionario) {
+                emails.push({
+                    nome: funcionario.nome,
+                    email: funcionario.email
+                });
+            }
+        });
+        
+        emails.forEach((item, index) => {
+            setTimeout(() => {
+                enviarEmailCobranca(item.nome, item.email);
+            }, index * 1000);
+        });
+    }
+
+    // Atualizar prévia do email
+    function atualizarPreviaEmail() {
+        const emailPreview = document.getElementById('emailPreview');
+        if (!emailPreview) return;
+        
+        const funcionarioFilter = document.getElementById('cobrancaFuncionario').value;
+        const prioridadeFilter = document.getElementById('cobrancaPrioridade').value;
+        
+        let atrasadas = getDemandasParaUsuarioLogado().filter(d => {
+            if (d.status === 'aprovada') return false;
+            const dataLimite = new Date(d.dataLimite);
+            const hoje = new Date();
+            return dataLimite < hoje;
+        });
+        
+        if (funcionarioFilter !== 'todos') {
+            atrasadas = atrasadas.filter(d => d.funcionarioId == funcionarioFilter);
+        }
+        
+        if (prioridadeFilter !== 'todas') {
+            atrasadas = atrasadas.filter(d => d.prioridade === prioridadeFilter);
+        }
+        
+        if (atrasadas.length === 0) {
+            emailPreview.textContent = 'Nenhuma demanda em atraso encontrada com os filtros atuais.';
+            return;
+        }
+        
+        let corpoEmail = `Prezado(a) [Nome do Funcionário],\n\n`;
+        corpoEmail += `Identificamos que você possui ${atrasadas.length} demanda(s) em atraso. Por favor, verifique e regularize a situação o mais breve possível.\n\n`;
+        corpoEmail += `--- Demandas em Atraso ---\n\n`;
+        
+        atrasadas.slice(0, 3).forEach(demanda => {
+            const dataLimite = new Date(demanda.dataLimite);
+            const hoje = new Date();
+            const diasAtraso = Math.floor((hoje - dataLimite) / (1000 * 60 * 60 * 24));
+            const tempoAtraso = calcularTempoRestante(demanda.dataLimite);
+            
+            corpoEmail += `• ${demanda.nomeDemanda || demanda.descricao}\n`;
+            corpoEmail += `  Categoria: ${demanda.categoria}\n`;
+            corpoEmail += `  Prioridade: ${demanda.prioridade}\n`;
+            corpoEmail += `  Data Limite: ${dataLimite.toLocaleDateString('pt-BR')}\n`;
+            corpoEmail += `  Dias de Atraso: ${diasAtraso}\n`;
+            corpoEmail += `  TAG: ${demanda.tag}\n\n`;
+        });
+        
+        if (atrasadas.length > 3) {
+            corpoEmail += `... e mais ${atrasadas.length - 3} demanda(s).\n\n`;
+        }
+        
+        corpoEmail += `Por favor, acesse o sistema para atualizar o status das demandas ou entrar em contato caso necessite de suporte.\n\n`;
+        corpoEmail += `Atenciosamente,\nGestão`;
+        
+        emailPreview.textContent = corpoEmail;
+    }
+
+    // Exportar demandas
+    function exportarDemandas() {
+        const format = document.getElementById('exportFormat').value;
+        const dadosParaExportar = todasDemandas;
+
+        if (dadosParaExportar.length === 0) {
+            showNotification('warning', 'Sem Dados', 'Não há demandas para exportar.');
+            return;
+        }
+
+        if (format === 'json') {
+            exportarJSON(dadosParaExportar);
+        } else if (format === 'csv') {
+            exportarCSV(dadosParaExportar);
+        } else {
+            showNotification('error', 'Formato Inválido', 'Selecione um formato de exportação válido (CSV ou JSON).');
+        }
+    }
+
+    // Exportar JSON
+    function exportarJSON(dados) {
+        try {
+            const jsonString = JSON.stringify(dados, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `demandas_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('success', 'Exportação Concluída', 'Os dados foram exportados em formato JSON.');
+        } catch (error) {
+            console.error('Erro ao exportar JSON:', error);
+            showNotification('error', 'Erro na Exportação', 'Ocorreu um erro ao gerar o arquivo JSON.');
+        }
+    }
+
+    // Exportar CSV
+    function exportarCSV(dados) {
+        if (dados.length === 0) {
+            showNotification('warning', 'Sem Dados', 'Não há dados para exportar.');
+            return;
+        }
+        
+        const headers = Object.keys(dados[0]);
+        let csvContent = headers.join(',') + '\n';
+        
+        dados.forEach(item => {
+            const values = headers.map(header => {
+                let value = item[header] || '';
+                if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                    value = `"${value.replace(/"/g, '""')}"`;
+                }
+                return value;
+            });
+            csvContent += values.join(',') + '\n';
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `demandas_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('success', 'Exportação Concluída', 'Os dados foram exportados em formato CSV.');
+    }
+
+    // Renderizar todas as abas
+    function renderizarTodasAsAbas() {
+        renderizarDemandas();
+        renderizarAnalise();
+        renderizarAtrasadas();
+        renderizarAprovadas();
+        renderizarPendentesColaboradores();
+        renderizarCobranca();
+        atualizarDashboard();
+        atualizarRanking();
+        atualizarGraficos();
+    }
+
+    // Importar demandas
+    function importarDemandas() {
+        const fileInput = document.getElementById('importFile');
+        if (!fileInput.files.length) {
+            showNotification('warning', 'Nenhum Arquivo Selecionado', 'Por favor, selecione um arquivo JSON para importar.');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async function(event) {
+            try {
+                let importedData = JSON.parse(event.target.result);
+
+                if (!Array.isArray(importedData)) {
+                    throw new Error("O arquivo JSON deve conter uma lista de demandas.");
+                }
+
+                // Normaliza cada demanda importada ANTES de qualquer processamento
+                const normalizedImportedData = importedData.map(demanda => normalizarDadosDemanda(demanda));
+
+                let updatedCount = 0;
+                let addedCount = 0;
+                let skippedCount = 0;
+
+                // Primeiro, vamos obter as demandas atuais do servidor para garantir que temos a lista mais recente
+                await carregarDadosDoServidor();
+
+                for (const demandaImportada of normalizedImportedData) {
+                    const demandaExistente = todasDemandas.find(d => d.id === demandaImportada.id);
+                    
+                    if (demandaExistente) {
+                        const dadosAtualizados = {
+                            ...demandaImportada,
+                            id: demandaExistente.id
+                        };
+                        
+                        delete dadosAtualizados.dataCriacao;
+                        
+                        const sucesso = await atualizarDemandaNoServidor(demandaExistente.id, dadosAtualizados);
+                        
+                        if (sucesso) {
+                            updatedCount++;
+                        } else {
+                            skippedCount++;
+                        }
+                    } else {
+                        if (!demandaImportada.id) {
+                        demandaImportada.id = Date.now() + Math.random();
+                        }
+                        
+                        if (!demandaImportada.tag) {
+                            demandaImportada.tag = `DEM-IMP-${Date.now()}`;
+                        }
+                        
+                        const sucesso = await salvarDemandaNoServidor(demandaImportada);
+                        
+                        if (sucesso) {
+                            addedCount++;
+                        } else {
+                            skippedCount++;
+                        }
+                    }
+                }
+
+                await carregarDadosDoServidor();
+                renderizarTodasAsAbas();
+                
+                let message = `Importação concluída. `;
+                if (updatedCount > 0) message += `${updatedCount} demanda(s) atualizada(s). `;
+                if (addedCount > 0) message += `${addedCount} nova(s) demanda(s) adicionada(s). `;
+                if (skippedCount > 0) message += `${skippedCount} demanda(s) ignorada(s) por erro.`;
+                
+                showNotification('success', 'Importação Concluída', message);
+                fileInput.value = '';
+
+            } catch (error) {
+                console.error('Erro ao importar o arquivo JSON:', error);
+                showNotification('error', 'Erro na Importação', `Falha ao ler o arquivo: ${error.message}. Verifique se o formato está correto.`);
+            }
+        };
+
+        reader.onerror = function() {
+            showNotification('error', 'Erro de Leitura', 'Ocorreu um erro ao ler o arquivo selecionado.');
+        };
+
+        reader.readAsText(file);
+    }
+
+    // Mapa Mental - Funções atualizadas
+    function atualizarMindmap() {
+        const mindmapArea = document.getElementById('mindmapArea');
+        if (!mindmapArea) return;
+
+        mindmapArea.innerHTML = '';
+
+        const filter = document.getElementById('mindmapFilter')?.value || 'todos';
+        const sort = document.getElementById('mindmapSort')?.value || 'prioridade';
+
+        let demandas = getDemandasParaUsuarioLogado().filter(d => 
+            d.status !== 'aprovada' && d.status !== 'reprovada'
+        );
+
+        // Aplicar filtro
+        if (filter !== 'todos') {
+            if (filter === 'atrasado') {
+                demandas = demandas.filter(d => {
+                    const dataLimite = new Date(d.dataLimite);
+                    const hoje = new Date();
+                    return dataLimite < hoje;
+                });
+            } else {
+                demandas = demandas.filter(d => d.status === filter);
+            }
+        }
+
+        // Aplicar ordenação
+        demandas.sort((a, b) => {
+            if (sort === 'prioridade') {
+                const prioridadeOrder = { 'Importante': 3, 'Média': 2, 'Relevante': 1 };
+                return prioridadeOrder[b.prioridade] - prioridadeOrder[a.prioridade];
+            } else if (sort === 'dataLimite') {
+                return new Date(a.dataLimite) - new Date(b.dataLimite);
+            } else if (sort === 'categoria') {
+                return a.categoria.localeCompare(b.categoria);
+            }
+            return 0;
+        });
+
+        // Adicionar nós para cada tipo de demanda
+        const tiposDemanda = [
+            { nome: 'Pendentes', filtro: d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao', cor: 'pending' },
+            { nome: 'Em Análise', filtro: d => d.status === 'finalizado_pendente_aprovacao', cor: 'in-analysis' },
+            { nome: 'Atrasadas', filtro: d => {
+                const dataLimite = new Date(d.dataLimite);
+                const hoje = new Date();
+                return dataLimite < hoje && d.status !== 'aprovada';
+            }, cor: 'overdue' },
+            { nome: 'Concluídas', filtro: d => d.status === 'aprovada', cor: 'completed' }
+        ];
+
+        // Adicionar nó central
+        const centralNode = document.createElement('div');
+        centralNode.className = 'mindmap-node';
+        centralNode.style.left = '50%';
+        centralNode.style.top = '20%';
+        centralNode.style.transform = 'translate(-50%, -50%)';
+        centralNode.innerHTML = '<i class="fas fa-user"></i> Minhas Demandas';
+        mindmapArea.appendChild(centralNode);
+
+        // Adicionar nós para cada tipo de demanda
+        tiposDemanda.forEach((tipo, index) => {
+            const demandasTipo = demandas.filter(tipo.filtro);
+            
+            if (demandasTipo.length === 0) return;
+            
+            // Adicionar nó do tipo
+            const tipoNode = document.createElement('div');
+            tipoNode.className = `mindmap-node ${tipo.cor}`;
+            
+            // Posicionar em círculo ao redor do nó central
+            const angleCircle = (index / tiposDemanda.length) * 2 * Math.PI;
+            const radius = 25; // Aumentado para melhor espaçamento
+            
+            // Calcular posição em porcentagem
+            const x = 50 + radius * Math.cos(angleCircle);
+            const y = 40 + radius * Math.sin(angleCircle); // Ajustado para não sobrepor o nó central
+            
+            tipoNode.style.left = `${x}%`;
+            tipoNode.style.top = `${y}%`;
+            tipoNode.style.transform = 'translate(-50%, -50%)'; // Centralizar o nó
+            tipoNode.innerHTML = `<strong>${tipo.nome}</strong><br><small>${demandasTipo.length} demandas</small>`;
+            
+            // Adicionar evento de clique para filtrar
+            tipoNode.addEventListener('click', () => {
+                document.getElementById('mindmapFilter').value = 
+                    tipo.nome === 'Pendentes' ? 'pendente' :
+                    tipo.nome === 'Em Análise' ? 'finalizado_pendente_aprovacao' :
+                    tipo.nome === 'Atrasadas' ? 'atrasado' :
+                    tipo.nome === 'Concluídas' ? 'aprovada' : 'todos';
+                atualizarMindmap();
+            });
+            
+            // Adicionar evento de mouseover para mostrar tooltip
+            tipoNode.addEventListener('mouseenter', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.innerHTML = `<strong>${tipo.nome}</strong><br>${demandasTipo.length} demandas`;
+                    tooltip.style.left = e.pageX + 10 + 'px';
+                    tooltip.style.top = e.pageY + 10 + 'px';
+                    tooltip.classList.add('show');
+                }
+            });
+            
+            tipoNode.addEventListener('mouseleave', () => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.classList.remove('show');
+                }
+            });
+            
+            // Tornar arrastável
+            makeDraggable(tipoNode);
+            
+            mindmapArea.appendChild(tipoNode);
+            
+            // Adicionar nós para cada demanda do tipo
+            demandasTipo.forEach((demanda, idx) => {
+                const node = document.createElement('div');
+                node.className = `mindmap-node ${tipo.cor}`;
+                
+                // Posicionar em círculo ao redor do nó do tipo
+                const angleDemanda = (idx / demandasTipo.length) * 2 * Math.PI;
+                const radiusDemanda = 18; // Aumentado para melhor espaçamento
+                
+                // Calcular posição em porcentagem
+                const xDemanda = x + radiusDemanda * Math.cos(angleDemanda);
+                const yDemanda = y + radiusDemanda * Math.sin(angleDemanda);
+                
+                node.style.left = `${xDemanda}%`;
+                node.style.top = `${yDemanda}%`;
+                node.style.transform = 'translate(-50%, -50%)'; // Centralizar o nó
+                node.innerHTML = `<strong>${demanda.nomeDemanda || demanda.descricao}</strong><br><small>${demanda.prioridade}</small>`;
+                
+                // Adicionar evento de clique para ver detalhes
+                node.addEventListener('click', () => verDetalhes(demanda.id));
+                
+                // Adicionar evento de mouseover para mostrar tooltip
+                node.addEventListener('mouseenter', (e) => showTooltip(e, demanda));
+                node.addEventListener('mouseleave', hideTooltip);
+                
+                // Tornar arrastável
+                makeDraggable(node);
+                
+                // Adicionar ID ao nó para referência
+                node.id = `node-${demanda.id}`;
+                
+                mindmapArea.appendChild(node);
+            });
+        });
+    }
+
+    // Filtrar mapa mental
+    function filterMindmap() {
+        atualizarMindmap();
+    }
+
+    // Ordenar mapa mental
+    function sortMindmap() {
+        atualizarMindmap();
+    }
+
+    // Resetar mapa mental
+    function resetMindmap() {
+        atualizarMindmap();
+        showNotification('info', 'Mapa Mental Resetado', 'O layout do mapa mental foi resetado.');
+    }
+
+    // Salvar layout do mapa mental
+    function saveMindmapLayout() {
+        // Implementar salvamento do layout do mapa mental
+        showNotification('info', 'Layout Salvo', 'O layout do mapa mental foi salvo.');
+    }
+
+    // Carregar layout do mapa mental
+    function carregarMindmapLayout() {
+        // Implementar carregamento do layout do mapa mental
+    }
+
+    // Tornar elemento arrastável
+    function makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        element.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // get mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    // Mostrar tooltip
+    function showTooltip(event, demanda) {
+        const tooltip = document.getElementById('tooltip');
+        if (!tooltip) return;
+
+        const dataLimite = new Date(demanda.dataLimite);
+        const tempoRestante = calcularTempoRestante(demanda.dataLimite);
+        
+        tooltip.innerHTML = `
+            <strong>${demanda.nomeDemanda || demanda.descricao}</strong><br>
+            <small>Categoria: ${demanda.categoria}</small><br>
+            <small>Prioridade: ${demanda.prioridade}</small><br>
+            <small>Data Limite: ${dataLimite.toLocaleDateString('pt-BR')}</small><br>
+            <small>Tempo Restante: ${tempoRestante}</small><br>
+            <small>Status: ${demanda.status.replace(/_/g, ' ')}</small>
+        `;
+        
+        tooltip.style.left = event.pageX + 10 + 'px';
+        tooltip.style.top = event.pageY + 10 + 'px';
+        tooltip.classList.add('show');
+    }
+
+    // Esconder tooltip
+    function hideTooltip() {
+        const tooltip = document.getElementById('tooltip');
+        if (tooltip) {
+            tooltip.classList.remove('show');
+        }
+    }
+
+    // Reatribuir demanda atrasada
+    function reassignOverdue() {
+        const selectedDemands = document.querySelectorAll('#atrasadasContainer .demanda-item');
+        if (selectedDemands.length === 0) {
+            showNotification('warning', 'Nenhuma Demanda Selecionada', 'Por favor, selecione uma demanda atrasada para reatribuir.');
+            return;
+        }
+
+        // Para simplificar, vamos pegar a primeira demanda selecionada
+        const firstDemanda = selectedDemands[0];
+        if (firstDemanda) {
+            const onclick = firstDemanda.querySelector('button[onclick*="verDetalhes"]')?.getAttribute('onclick');
+            if (onclick) {
+                const match = onclick.match(/verDetalhes\((\d+)\)/);
+                if (match) {
+                    abrirModalReatribuicao(parseInt(match[1]));
+                }
+            }
+        }
+    }
+
+    // Abrir modal de reatribuição
+    function abrirModalReatribuicao(demandaId) {
+        const demanda = todasDemandas.find(d => d.id === demandaId);
+        if (!demanda) return;
+
+        document.getElementById('reassignForm').reset();
+        showModal('reassignModal', 'Reatribuir Demanda');
+    }
+
+    // Salvar reatribuição
+    async function salvarReatribuicao() {
+        const novoAtribuidoId = document.getElementById('reassignTo').value;
+        const motivo = document.getElementById('reassignReason').value;
+
+        if (!novoAtribuidoId || !motivo) {
+            showNotification('warning', 'Campos Obrigatórios', 'Por favor, selecione um funcionário e informe o motivo.');
+            return;
+        }
+
+        // Processar cada demanda selecionada
+        const promises = Array.from(selectedOverdueDemands).map(async (demandaId) => {
+            const demanda = todasDemandas.find(d => d.id === demandaId);
+            if (!demanda) return;
+
+            const novoAtribuido = usuarios.find(u => u.id == novoAtribuidoId);
+            if (!novoAtribuido) return;
+
+            // Adicionar o novo atribuído à lista
+            const novosAtribuidos = [...(demanda.atribuidos || []), {
+                id: novoAtribuido.id,
+                nome: novoAtribuido.nome,
+                email: novoAtribuido.email
+            }];
+
+            const dadosAtualizados = {
+                atribuidos: novosAtribuidos,
+                status: 'atribuida_pendente_aceitacao'
+            };
+
+            return await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
+        });
+
+        try {
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r).length;
+            
+            if (successCount > 0) {
+                showNotification('success', 'Demandas Reatribuídas', `${successCount} demandas foram reatribuídas com sucesso.`);
+                closeModal('reassignModal');
+                await carregarDadosDoServidor();
+                renderizarAtrasadas();
+                
+                // Notificar os novos atribuídos
+                const novoAtribuido = usuarios.find(u => u.id == novoAtribuidoId);
+                if (novoAtribuido) {
+                    Array.from(selectedOverdueDemands).forEach(demandaId => {
+                        const demanda = todasDemandas.find(d => d.id === demandaId);
+                        if (demanda) {
+                            addUserNotification('info', 'Nova Tarefa Atribuída', 
+                                `A tarefa "${demanda.nomeDemanda}" foi atribuída a você. Motivo: ${motivo}`, 
+                                { tag: demanda.tag }
+                            );
+
+                            // Enviar email para o novo atribuído
+                            const assunto = encodeURIComponent(`Nova Tarefa Atribuída: ${demanda.nomeDemanda}`);
+                            const corpo = encodeURIComponent(`Prezado(a) ${novoAtribuido.nome},\n\nUma tarefa foi reatribuída a você:\n\n--- Detalhes da Tarefa ---\nNome: ${demanda.nomeDemanda}\nDescrição: ${demanda.descricao}\nCategoria: ${demanda.categoria}\nPrioridade: ${demanda.prioridade}\nData Limite: ${new Date(demanda.dataLimite).toLocaleDateString('pt-BR')}\nTAG: ${demanda.tag}\n\nMotivo da reatribuição: ${motivo}\n\nPor favor, acesse o sistema para aceitar ou recusar esta tarefa.\n\nAtenciosamente,\nGestão`);
+                            
+                            window.open(`mailto:${novoAtribuido.email}?subject=${assunto}&body=${corpo}`, '_blank');
+                        }
+                    });
+                }
+            } else {
+                showNotification('error', 'Erro ao Reatribuir', 'Não foi possível reatribuir as demandas selecionadas.');
+            }
+        } catch (error) {
+            console.error('Erro ao reatribuir demandas:', error);
+            showNotification('error', 'Erro ao Reatribuir', 'Ocorreu um erro ao processar a solicitação.');
+        }
+    }
+
+    // Estender prazos
+    function extendDeadlines() {
+        const selectedDemands = document.querySelectorAll('#atrasadasContainer .demanda-item');
+        if (selectedDemands.length === 0) {
+            showNotification('warning', 'Nenhuma Demanda Selecionada', 'Por favor, selecione uma demanda atrasada para estender o prazo.');
+            return;
+        }
+
+        // Para simplificar, vamos pegar a primeira demanda selecionada
+        const firstDemanda = selectedDemands[0];
+        if (firstDemanda) {
+            const onclick = firstDemanda.querySelector('button[onclick*="verDetalhes"]')?.getAttribute('onclick');
+            if (onclick) {
+                const match = onclick.match(/verDetalhes\((\d+)\)/);
+                if (match) {
+                    const demandaId = parseInt(match[1]);
+                    const demanda = todasDemandas.find(d => d.id === demandaId);
+                    if (demanda) {
+                        // Verificar se faltam menos de 24 horas
+                        const dataLimite = new Date(demanda.dataLimite);
+                        const agora = new Date();
+                        const horasRestantes = (dataLimite - agora) / (1000 * 60 * 60);
+                        
+                        if (horasRestantes < 24) {
+                            // Abrir modal de reprovação com opção de estender prazo
+                            abrirModalReprovar(demandaId);
+                        } else {
+                            showNotification('info', 'Prazo Ainda Longo', 'Esta demanda ainda tem mais de 24 horas para o prazo.');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Anotações - Funções atualizadas
+    function carregarAnotacoes() {
+        const storageKey = `notes_${usuarioLogado?.id || 'guest'}`;
+        const saved = localStorage.getItem(storageKey);
+        
+        if (saved) {
+            try {
+                notes = JSON.parse(saved);
+            } catch (e) {
+                console.error('Erro ao carregar anotações:', e);
+                notes = [];
+            }
+        } else {
+            notes = [];
+        }
+        
+        renderizarAnotacoes();
+    }
+
+    function salvarAnotacoes() {
+        if (!usuarioLogado) return;
+        
+        const storageKey = `notes_${usuarioLogado.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(notes));
+    }
+
+    function renderizarAnotacoes() {
+        const notesContainer = document.getElementById('notesContainer');
+        if (!notesContainer) return;
+
+        const monthFilter = document.getElementById('notesMonthFilter')?.value || '';
+        const yearFilter = document.getElementById('notesYearFilter')?.value || '';
+
+        let filteredNotes = notes;
+        if (monthFilter || yearFilter) {
+            filteredNotes = notes.filter(note => {
+                const noteDate = new Date(note.date);
+                const matchesMonth = !monthFilter || String(noteDate.getMonth() + 1).padStart(2, '0') === monthFilter;
+                const matchesYear = !yearFilter || noteDate.getFullYear() == yearFilter;
+                return matchesMonth && matchesYear;
+            });
+        }
+
+        if (filteredNotes.length === 0) {
+            notesContainer.innerHTML = '<p class="empty-state">Nenhuma anotação encontrada. Crie sua primeira anotação!</p>';
+            return;
+        }
+
+        notesContainer.innerHTML = '';
+        
+        filteredNotes.forEach(note => {
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note-item';
+            noteElement.style.borderLeft = `4px solid ${note.color || '#3498db'}`;
+            
+            noteElement.innerHTML = `
+                <div class="note-header">
+                    <h4>${note.title}</h4>
+                    <div class="note-date">${formatDate(note.date)}</div>
+                    ${note.assignedTo ? `<small><strong>Atribuída a:</strong> ${note.assignedTo}</small>` : ''}
+                    <div class="note-actions">
+                        <button onclick="editNote(${note.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteNote(${note.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="note-content">${note.content.replace(/\n/g, '<br>')}</div>
+            `;
+            
+            notesContainer.appendChild(noteElement);
+        });
+    }
+
+    function addNewNote() {
+        document.getElementById('noteModalTitle').textContent = 'Nova Anotação';
+        document.getElementById('noteForm').reset();
+        document.getElementById('noteModal').style.display = 'block';
+    }
+
+    function salvarAnotacao() {
+        const title = document.getElementById('noteTitle').value;
+        const content = document.getElementById('noteContent').value;
+        const color = document.getElementById('noteColor').value;
+        const assignedTo = document.getElementById('noteAssignTo').value;
+
+        if (!title || !content) {
+            showNotification('warning', 'Campos Obrigatórios', 'Por favor, preencha o título e o conteúdo da anotação.');
+            return;
+        }
+
+        const newNote = {
+            id: Date.now(),
+            title,
+            content,
+            color,
+            date: new Date().toISOString(),
+            createdBy: usuarioLogado.id,
+            assignedTo: assignedTo ? parseInt(assignedTo) : null
+        };
+        
+        notes.unshift(newNote);
+        salvarAnotacoes();
+        renderizarAnotacoes();
+        closeModal('noteModal');
+        
+        showNotification('success', 'Anotação Salva', 'Sua anotação foi salva com sucesso.');
+
+        // Se a anotação foi atribuída a alguém, notificar
+        if (assignedTo) {
+            const assignedUser = usuarios.find(u => u.id == assignedTo);
+            if (assignedUser) {
+                addUserNotification('info', 'Anotação Atribuída', 
+                    `Uma anotação "${title}" foi atribuída a você.`, 
+                    { tag: `NOTE-${newNote.id}` }
+                );
+            }
+        }
+    }
+
+    function editNote(id) {
+        const note = notes.find(n => n.id === id);
+        if (!note) return;
+        
+        document.getElementById('noteModalTitle').textContent = 'Editar Anotação';
+        document.getElementById('noteTitle').value = note.title;
+        document.getElementById('noteContent').value = note.content;
+        document.getElementById('noteColor').value = note.color;
+        document.getElementById('noteAssignTo').value = note.assignedTo || '';
+        
+        // Modificar o formulário para atualizar em vez de criar
+        const form = document.getElementById('noteForm');
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            
+            note.title = document.getElementById('noteTitle').value;
+            note.content = document.getElementById('noteContent').value;
+            note.color = document.getElementById('noteColor').value;
+            note.assignedTo = document.getElementById('noteAssignTo').value ? parseInt(document.getElementById('noteAssignTo').value) : null;
+            
+            salvarAnotacoes();
+            renderizarAnotacoes();
+            closeModal('noteModal');
+            
+            // Restaurar função original
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                salvarAnotacao();
+            };
+            
+            showNotification('success', 'Anotação Atualizada', 'Sua anotação foi atualizada com sucesso.');
+        };
+        
+        document.getElementById('noteModal').style.display = 'block';
+    }
+
+    function deleteNote(id) {
+        if (!confirm('Tem certeza que deseja excluir esta anotação?')) return;
+        
+        notes = notes.filter(n => n.id !== id);
+        salvarAnotacoes();
+        renderizarAnotacoes();
+        
+        showNotification('info', 'Anotação Excluída', 'A anotação foi excluída com sucesso.');
+    }
+
+    // Adicionar filtros de mês e ano às funções existentes
+    function filterNotes() {
+        renderizarAnotacoes();
+    }
+
+    function updateRanking() {
+        atualizarRanking();
+    }
+
+    // Função para atualizar a interface automaticamente
+    async function atualizarInterface() {
+        await carregarDadosDoServidor();
+        renderizarTodasAsAbas();
+        atualizarBadges();
+        atualizarDashboard();
+        atualizarRanking();
+        atualizarGraficos();
+    }
+
+    // Adicionar listeners para os novos filtros de mês e ano
+    document.addEventListener('DOMContentLoaded', () => {
+        // Adicionar listeners para os filtros de mês que já existem
+        ['pendentesMonthFilter', 'analiseMonthFilter', 'atrasadasMonthFilter', 'aprovadasMonthFilter', 'colabMonthFilter', 'rankingMonthFilter', 'notesMonthFilter'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', () => {
+                    // A função correspondente será chamada baseada no ID
+                    if (id.includes('pendentes')) {
+                        filterPendentes();
+                    } else if (id.includes('analise')) {
+                        filterAnalise();
+                    } else if (id.includes('atrasadas')) {
+                        filterAtrasadas();
+                    } else if (id.includes('aprovadas')) {
+                        filterAprovadas();
+                    } else if (id.includes('colab')) {
+                        filterColabDemandas();
+                    } else if (id.includes('ranking')) {
+                        updateRanking();
+                    } else if (id.includes('notes')) {
+                        filterNotes();
+                    }
+                });
+            }
+        });
+
+        // Adicionar listeners para os novos filtros de ano
+        ['pendentesYearFilter', 'analiseYearFilter', 'atrasadasYearFilter', 'aprovadasYearFilter', 'colabYearFilter', 'rankingYearFilter', 'notesYearFilter'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', () => {
+                    // A função correspondente será chamada baseada no ID
+                    if (id.includes('pendentes')) {
+                        filterPendentes();
+                    } else if (id.includes('analise')) {
+                        filterAnalise();
+                    } else if (id.includes('atrasadas')) {
+                        filterAtrasadas();
+                    } else if (id.includes('aprovadas')) {
+                        filterAprovadas();
+                    } else if (id.includes('colab')) {
+                        filterColabDemandas();
+                    } else if (id.includes('ranking')) {
+                        updateRanking();
+                    } else if (id.includes('notes')) {
+                        filterNotes();
+                    }
+                });
+            }
+        });
+    });
+
+    // Fechar modais ao clicar fora
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+
+    // Função para exportar demandas concluídas
+    function exportCompleted() {
+        const demandasConcluidas = todasDemandas.filter(d => d.status === 'aprovada');
+        
+        if (demandasConcluidas.length === 0) {
+            showNotification('warning', 'Sem Dados', 'Não há demandas concluídas para exportar.');
+            return;
+        }
+        
+        exportarJSON(demandasConcluidas);
+    }
+
+    // Função para exportar ranking
+    function exportRanking() {
+        const ranking = {};
+        
+        usuarios.filter(u => u.role === 'gestor').forEach(func => {
+            ranking[func.id] = {
+                nome: func.nome,
+                email: func.email,
+                nivel: func.nivel,
+                pontos: func.pontos,
+                conquistas: func.conquistas
+            };
+        });
+        
+        todasDemandas.forEach(demanda => {
+            if (ranking[demanda.funcionarioId]) {
+                if (!ranking[demanda.funcionarioId].demandas) {
+                    ranking[demanda.funcionarioId].demandas = [];
+                }
+                ranking[demanda.funcionarioId].demandas.push({
+                    nome: demanda.nomeDemanda,
+                    status: demanda.status,
+                    dataCriacao: demanda.dataCriacao,
+                    dataConclusao: demanda.dataConclusao,
+                    dataLimite: demanda.dataLimite,
+                    categoria: demanda.categoria,
+                    prioridade: demanda.prioridade,
+                    complexidade: demanda.complexidade
+                });
+            }
+        });
+        
+        exportarJSON(Object.values(ranking));
+    }
+
+    // Função para mudar período do ranking
+    function changeRankingPeriod() {
+        const period = prompt('Digite o período em dias (ex: 30 para últimos 30 dias):', '30');
+        if (period && !isNaN(period)) {
+            // Implementar filtro por período
+            showNotification('info', 'Período Alterado', `Período alterado para últimos ${period} dias`);
+        }
+    }
+
+    // Função para atualizar o contador de demandas selecionadas
+    function updateSelectedCount() {
+        const countElement = document.getElementById('selectedOverdueCount');
+        if (countElement) {
+            countElement.textContent = `${selectedOverdueDemands.size} demandas selecionadas`;
+        }
+    }
+
+    // Função para refresh de gráficos
+    function refreshChart(chartType) {
+        if (charts[chartType]) {
+            charts[chartType].update();
+            showNotification('info', 'Gráfico Atualizado', `O gráfico de ${chartType} foi atualizado.`);
+        }
+    }
+
+    // Função para download de gráficos
+    function downloadChart(chartType) {
+        if (charts[chartType]) {
+            const url = charts[chartType].toBase64Image();
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chart_${chartType}_${new Date().toISOString().split('T')[0]}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showNotification('success', 'Gráfico Baixado', `O gráfico de ${chartType} foi baixado.`);
+        }
+    }
+</script>
+
+</body>
+</html>
