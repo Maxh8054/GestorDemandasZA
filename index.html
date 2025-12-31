@@ -1231,7 +1231,7 @@
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 5px 10px;
             border-radius: 5px;
@@ -5026,7 +5026,8 @@
     function atualizarRanking() {
         const ranking = {};
         
-        usuarios.filter(u => u.role === 'gestor').forEach(func => {
+        // Alteração: Incluir todos os usuários (funcionários e gestores) no ranking
+        usuarios.forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
                 concluidas: 0,
@@ -5063,7 +5064,7 @@
                             }
                         }
                     }
-                                } else if (demanda.status === 'pendente' || demanda.status === 'finalizado_pendente_aprovacao' || demanda.status === 'reprovada' || demanda.status === 'reprovada_pelo_atribuido') {
+                } else if (demanda.status === 'pendente' || demanda.status === 'finalizado_pendente_aprovacao' || demanda.status === 'reprovada' || demanda.status === 'reprovada_pelo_atribuido') {
                     ranking[demanda.funcionarioId].andamento++;
                 }
                 
@@ -6362,7 +6363,7 @@
     function exportRanking() {
         const ranking = {};
         
-        usuarios.filter(u => u.role === 'gestor').forEach(func => {
+        usuarios.forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
                 email: func.email,
