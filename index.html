@@ -1402,8 +1402,9 @@
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
             margin-bottom: 20px;
-            min-height: 700px;
+            min-height: 600px;
             position: relative;
+            padding-bottom: 80px; /* Espaço extra para os botões */
         }
 
         .mindmap-node {
@@ -1500,44 +1501,6 @@
 
         .note-actions button:hover {
             color: var(--danger-color);
-        }
-
-        .feedback-container {
-            background: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            margin-bottom: 20px;
-        }
-
-        .feedback-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .feedback-stat {
-            background: var(--light-color);
-            padding: 15px;
-            border-radius: var(--border-radius);
-            text-align: center;
-        }
-
-        .feedback-stat h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.8rem;
-            color: var(--primary-color);
-        }
-
-        .feedback-stat p {
-            margin: 0;
-            color: var(--gray-color);
-        }
-
-        .feedback-chart {
-            height: 300px;
-            margin-bottom: 20px;
         }
 
         .category-search {
@@ -1983,10 +1946,10 @@
                 <div class="tab" id="gestorTab2" style="display: none;" onclick="switchTab('ranking')">
                     <i class="fas fa-chart-bar"></i> Ranking
                 </div>
-                <div class="tab" id="gestorTab3" style="display: none;" onclick="switchTab('cobranca')">
+                <div class="tab" id="gestorTab4" style="display: none;" onclick="switchTab('cobranca')">
                     <i class="fas fa-envelope"></i> Cobrança
                 </div>
-                <div class="tab" id="gestorTab4" style="display: none;" onclick="switchTab('exportar')">
+                <div class="tab" id="gestorTab5" style="display: none;" onclick="switchTab('exportar')">
                     <i class="fas fa-download"></i> Exportar/Importar
                 </div>
             </div>
@@ -2189,7 +2152,7 @@
                         <div class="form-group">
                             <label for="dataLimiteInput">Data Limite:</label>
                             <input type="date" id="dataLimiteInput" required onchange="validateDeadline()">
-                            </div>
+                        </div>
                         
                         <div class="form-group">
                             <label for="anexosCriacaoInput">Anexar Documentos/Imagens (Opcional):</label>
@@ -2499,7 +2462,7 @@
                         <h3>Modelo de Email de Cobrança</h3>
                         <div class="email-subject">Assunto: [ASSUNTO]</div>
                         <div class="email-body" id="emailPreview">
-[CORPO DO EMAIL]
+    [CORPO DO EMAIL]
                         </div>
                         <div class="email-footer">
                             Este email será enviado automaticamente pelo sistema de gestão de demandas.
@@ -2769,25 +2732,19 @@
                 const transcriptionArea = document.getElementById('transcriptionArea');
                 const noteContent = document.getElementById('noteContent');
                 
-                let interimTranscript = '';
                 let finalTranscript = '';
                 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
                         finalTranscript += transcript + ' ';
-                    } else {
-                        interimTranscript += transcript;
                     }
                 }
                 
                 if (finalTranscript) {
-                    // Adicionar o texto transcrevido ao campo de conteúdo
+                    // Adicionar o texto transcrito diretamente ao campo de conteúdo
                     noteContent.value += finalTranscript;
-                }
-                
-                if (interimTranscript) {
-                    transcriptionArea.innerHTML = `<p><strong>Transcrevendo:</strong> ${interimTranscript}</p>`;
+                    transcriptionArea.innerHTML = `<p><strong>Transcrevendo:</strong> ${finalTranscript}</p>`;
                     transcriptionArea.classList.add('active');
                 }
             };
@@ -2888,6 +2845,38 @@
                 });
             }
         });
+    }
+
+    // Função para normalizar dados de uma demanda
+    function normalizarDadosDemanda(demanda) {
+        if (!demanda) return demanda;
+
+        // Garante que 'diasSemana' seja um array
+        if (typeof demanda.diasSemana === 'string') {
+            try {
+                demanda.diasSemana = JSON.parse(demanda.diasSemana);
+            } catch (e) {
+                demanda.diasSemana = [];
+            }
+        } else if (!Array.isArray(demanda.diasSemana)) {
+            demanda.diasSemana = [];
+        }
+
+        // Garante que 'atribuidos' seja um array
+        if (typeof demanda.atribuidos === 'string') {
+            try {
+                demanda.atribuidos = JSON.parse(demanda.atribuidos);
+            } catch (e) {
+                demanda.atribuidos = [];
+            }
+        } else if (!Array.isArray(demanda.atribuidos)) {
+            demanda.atribuidos = [];
+        }
+
+        // Garante que 'isRotina' seja um booleano
+        demanda.isRotina = Boolean(demanda.isRotina);
+
+        return demanda;
     }
 
     // Funções de notificação
@@ -3174,8 +3163,8 @@
                 userBadge.innerHTML = '<i class="fas fa-user-shield"></i> <span>' + usuarioLogado.nome + ' (Gestor)</span>';
                 document.getElementById('gestorTab').style.display = 'block';
                 document.getElementById('gestorTab2').style.display = 'block';
-                document.getElementById('gestorTab3').style.display = 'block';
                 document.getElementById('gestorTab4').style.display = 'block';
+                document.getElementById('gestorTab5').style.display = 'block';
                 document.getElementById('gestorActions2').style.display = 'flex';
                 document.getElementById('gestorActions3').style.display = 'flex';
                 document.getElementById('exportRankingBtn').style.display = 'inline-block';
@@ -3191,7 +3180,6 @@
         await carregarDadosDoServidor();
         inicializarImportacaoJSON();
         carregarAnotacoes();
-        carregarFeedbacks();
         carregarMindmapLayout();
         atualizarDashboard();
         atualizarRanking();
@@ -3208,7 +3196,6 @@
         if (confirm('Tem certeza que deseja sair do sistema?')) {
             salvarNotificacoesNoStorage();
             salvarAnotacoes();
-            salvarFeedbacks();
             sessionStorage.removeItem('usuarioLogado');
             usuarioLogado = null;
             location.reload();
@@ -3217,14 +3204,14 @@
 
     // Carregar funcionários nos selects
     function carregarFuncionariosNosSelect() {
-        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'feedbackFuncFilter', 'feedbackFuncSelect', 'reassignTo', 'noteAssignTo'];
+        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'reassignTo', 'noteAssignTo'];
         
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
                 select.innerHTML = '';
                 
-                if (selectId === 'filtroFuncionario' || selectId === 'colabFuncFilter' || selectId === 'feedbackFuncFilter') {
+                if (selectId === 'filtroFuncionario' || selectId === 'colabFuncFilter') {
                     const defaultOption = new Option('Todos os Funcionários', 'todos');
                     select.add(defaultOption);
                 } else if (selectId === 'cobrancaFuncionario') {
@@ -3237,7 +3224,7 @@
                     select.add(optionLundin);
                     const optionRD = new Option('R&D', 'R&D');
                     select.add(optionRD);
-                } else if (selectId === 'feedbackFuncSelect' || selectId === 'reassignTo') {
+                } else if (selectId === 'reassignTo') {
                     const defaultOption = new Option('Selecione um funcionário', '');
                     select.add(defaultOption);
                 } else if (selectId === 'noteAssignTo') {
@@ -3504,12 +3491,9 @@
     function getDemandasParaUsuarioLogado() {
         if (!usuarioLogado) return [];
         
-        // Para gestores, apenas as demandas que eles criaram ou que foram atribuídas a eles
+        // Para gestores, mostrar todas as demandas
         if (usuarioLogado.role === 'gestor') {
-            return todasDemandas.filter(d => 
-                d.funcionarioId === usuarioLogado.id || 
-                (d.atribuidos && d.atribuidos.some(a => a.id === usuarioLogado.id))
-            );
+            return todasDemandas;
         }
         
         // Para funcionários, as demandas que eles criaram ou que foram atribuídas a eles
@@ -3527,7 +3511,14 @@
     function getDemandasDosColaboradores() {
         if (!usuarioLogado || usuarioLogado.role !== 'gestor') return [];
         
+        // Para gestores, mostrar todas as demandas dos funcionários
         return todasDemandas.filter(demanda => {
+            // Incluir demandas criadas pelo gestor e atribuídas a funcionários
+            if (demanda.funcionarioId === usuarioLogado.id && demanda.atribuidos && demanda.atribuidos.length > 0) {
+                return true;
+            }
+            
+            // Incluir demandas criadas por funcionários
             return usuarios.some(u => u.role === 'funcionario' && u.id === demanda.funcionarioId);
         });
     }
@@ -3794,9 +3785,9 @@
                 modal.style.display = 'block';
             }
         } else {
-             const modalTitleGeneric = document.getElementById('modalTitle');
-             const modalBodyGeneric = document.getElementById('modalBody');
-             if (modal && modalTitleGeneric && modalBodyGeneric) {
+            const modalTitleGeneric = document.getElementById('modalTitle');
+            const modalBodyGeneric = document.getElementById('modalBody');
+            if (modal && modalTitleGeneric && modalBodyGeneric) {
                 modalTitleGeneric.textContent = title;
                 modalBodyGeneric.innerHTML = content;
                 modal.style.display = 'block';
@@ -3947,14 +3938,6 @@
             noteForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 salvarAnotacao();
-            });
-        }
-
-        const feedbackForm = document.getElementById('feedbackForm');
-        if (feedbackForm) {
-            feedbackForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                salvarFeedback();
             });
         }
 
@@ -4182,7 +4165,7 @@
                     
                     // Enviar email para o gestor
                     const assunto = encodeURIComponent(`Demanda Resolvida para Aprovação: ${demandaResolucaoAtual.nomeDemanda}`);
-                    const corpo = encodeURIComponent(`Prezado Gestor,\n\nA demanda "${demandaResolucaoAtual.nomeDemanda}" foi resolvida por ${demandaResolucaoAtual.nomeFuncionario} e está aguardando sua aprovação.\n\n--- Detalhes da Demanda ---\nNome: ${demandaResolucaoAtual.nomeDemanda}\nTAG: ${demandaResolucaoAtual.tag}\n\n--- Comentários do Funcionário ---\n${comentarios}\n\nPor favor, acesse o sistema para aprovar ou reprovar esta demanda.\n\nAtenciosamente,\nGestão`);
+                    const corpo = encodeURIComponent(`Prezado Gestor,\n\nA demanda "${demandaResolucaoAtual.nomeDemanda}" foi resolvida por ${demandaResolucaoAtual.nomeFuncionario} e está aguardando sua aprovação.\n\n--- Detalhes da Demanda ---\nNome: ${demandaResolucaoAtual.nomeDemanda}\nTAG: ${demandaResolucaoAtual.tag}\n\n--- Comentários do Funcionário ---\n${comentarios}\n\nPor favor, acesse o sistema para aprovar ou reprovar esta demanda.\n\nAtenciosamente,\nSistema de Gestão de Demandas`);
                     window.open(`mailto:${gestor.email}?subject=${assunto}&body=${corpo}`, '_blank');
                 }
                 
@@ -4372,7 +4355,7 @@
                 atrasadasContainer.innerHTML = '<p>Nenhuma demanda atrasada no momento.</p>';
             } else {
                 atrasadas.forEach(demanda => {
-                    atrasadasContainer.appendChild(criarElementoDemanda(demanda, true));
+                    atrasadasContainer.appendChild(criarElementoDemandaAtrasada(demanda, true));
                 });
             }
         }
@@ -4521,6 +4504,7 @@
         }
         
         let diasFormatados = '';
+        // A verificação agora é segura, pois normalizarDadosDemanda garante que é um array
         if (demanda.isRotina && Array.isArray(demanda.diasSemana) && demanda.diasSemana.length > 0) {
             diasFormatados = demanda.diasSemana.map(dia => ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'][dia]).join(', ');
         }
@@ -4530,7 +4514,8 @@
             const performanceText = calcularDesempenhoTempo(demanda.dataCriacao, demanda.dataConclusao, dataLimite);
             const performanceClass = performanceText.includes('antes') ? 'early' : 'late';
             tempoElement = `<div class="time-performance ${performanceClass}">${performanceText}</div>`;
-        } else {
+        } else if (status !== 'finalizado_pendente_aprovacao') {
+            // Não mostrar timer para demandas em análise
             const tempoRestante = dataLimite ? calcularTempoRestante(dataLimite) : '';
             tempoElement = `<div class="time-remaining">${isAtrasado ? 'ATRASADA HÁ ' : 'TEMPO RESTANTE: '}${tempoRestante}</div>`;
         }
@@ -4591,6 +4576,272 @@
         return div;
     }
 
+    // Criar elemento de demanda atrasada (com checkbox para seleção)
+    function criarElementoDemandaAtrasada(demanda, isAtrasado = false) {
+        // Usa a função de normalizar para garantir que os dados estejam corretos
+        demanda = normalizarDadosDemanda(demanda);
+
+        const div = document.createElement('div');
+        
+        const status = demanda.status || 'pendente';
+        const isRotina = demanda.isRotina || false;
+        const dataLimite = demanda.dataLimite;
+        const statusClass = isAtrasado ? 'atrasado' : status;
+        
+        div.className = `demanda-item ${statusClass} ${isRotina ? 'rotina' : ''}`;
+        
+        let statusIcon = '⏳';
+        switch (status) {
+            case 'aprovada':
+                statusIcon = '✅';
+                break;
+            case 'reprovada':
+            case 'reprovada_pelo_atribuido':
+                statusIcon = '❌';
+                break;
+            case 'finalizado_pendente_aprovacao':
+                statusIcon = '📋';
+                break;
+            case 'atribuida_pendente_aceitacao':
+                statusIcon = '📋';
+                break;
+        }
+        
+        const dataLimiteFormatada = dataLimite ? new Date(dataLimite).toLocaleDateString('pt-BR') : '';
+        const rotinaInfo = isRotina ? `<small><i class="fas fa-redo"></i> Tarefa de rotina</small>` : '';
+        
+        let infoAdicional = '';
+        if (status === 'finalizado_pendente_aprovacao') {
+            infoAdicional = `<br><small><strong>Comentários do Funcionário:</strong> ${demanda.comentarios || ''}</small>`;
+        }
+        
+        if (status === 'reprovada_pelo_atribuido') {
+            infoAdicional = `<br><small><strong>Motivo da Reprovação:</strong> ${demanda.comentarioReprovacaoAtribuicao || ''}</small>`;
+        }
+        
+        if (status === 'reprovada') {
+            infoAdicional = `<br><small><strong>Motivo da Reprovação:</strong> ${demanda.comentarioGestor || ''}</small>`;
+        }
+        
+        let diasFormatados = '';
+        // A verificação agora é segura, pois normalizarDadosDemanda garante que é um array
+        if (demanda.isRotina && Array.isArray(demanda.diasSemana) && demanda.diasSemana.length > 0) {
+            diasFormatados = demanda.diasSemana.map(dia => ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'][dia]).join(', ');
+        }
+        
+        const tempoRestante = dataLimite ? calcularTempoRestante(dataLimite) : '';
+        
+        const prioridade = demanda.prioridade || '';
+        const prioridadeBadge = prioridade ? 
+            `<span class="demanda-priority priority-${prioridade.toLowerCase()}">${prioridade}</span>` : '';
+        
+        const podeAprovar = usuarioLogado && usuarioLogado.role === 'gestor';
+        const eDono = usuarioLogado && usuarioLogado.id === demanda.funcionarioId;
+        // A verificação agora é segura, pois normalizarDadosDemanda garante que é um array
+        const eAtribuido = usuarioLogado && Array.isArray(demanda.atribuidos) && demanda.atribuidos.some(a => a.id === usuarioLogado.id);
+        
+        let atribuidosInfo = '';
+        // A verificação agora é segura, pois normalizarDadosDemanda garante que é um array
+        if (Array.isArray(demanda.atribuidos) && demanda.atribuidos.length > 0) {
+            atribuidosInfo = `<small><strong>Atribuída a:</strong> ${demanda.atribuidos.map(a => a.nome).join(', ')}</small>`;
+        }
+        
+        // Verificar se esta demanda está selecionada
+        const isSelected = selectedOverdueDemands.has(demanda.id);
+        
+        div.innerHTML = `
+            ${prioridadeBadge}
+            <input type="checkbox" class="demanda-checkbox" id="checkbox_${demanda.id}" 
+                ${isSelected ? 'checked' : ''} 
+                onchange="toggleOverdueSelection(${demanda.id})">
+            <div class="demanda-info">
+                <strong>${demanda.nomeFuncionario} - ${demanda.nomeDemanda || demanda.descricao}</strong>
+                <small>Categoria: ${demanda.categoria} | ${statusIcon} ${demanda.status.replace(/_/g, ' ')} | Local: ${demanda.local || 'N/A'} | Data Limite: ${dataLimiteFormatada}</small>
+                ${atribuidosInfo}
+                <small><strong>TAG:</strong> ${demanda.tag || ''}</small>
+                ${demanda.comentarioGestor ? `<br><small><strong>Comentário do Gestor:</strong> ${demanda.comentarioGestor || ''}</small>` : ''}
+                ${infoAdicional}
+                ${rotinaInfo}
+                ${diasFormatados ? `<small><strong>Dias da semana:</strong> ${diasFormatados}</small>` : ''}
+                <div class="time-remaining">ATRASADA HÁ ${tempoRestante}</div>
+            </div>
+            <div class="acoes-demandas">
+                ${(eDono || eAtribuido) && (demanda.status === 'pendente' || demanda.status === 'reprovada') ? `
+                    <button class="success" onclick="abrirModalResolucao(${demanda.id})" title="Resolver Demanda">
+                        <i class="fas fa-tools"></i>
+                    </button>
+                ` : ''}
+                ${podeAprovar && (demanda.status === 'finalizado_pendente_aprovacao') ? `
+                    <button class="success" onclick="aprovarDemanda(${demanda.id}, '${demanda.nomeFuncionario}')" title="Aprovar">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="danger" onclick="abrirModalReprovar(${demanda.id})" title="Reprovar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : ''}
+                <button class="secondary" onclick="verDetalhes(${demanda.id})" title="Ver Detalhes">
+                    <i class="fas fa-eye"></i>
+                </button>
+                ${podeAprovar ? `
+                    <button class="danger" onclick="apagarDemanda(${demanda.id})" title="Apagar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : ''}
+            </div>
+        `;
+        
+        return div;
+    }
+
+    // Função para alternar seleção de demandas atrasadas
+    function toggleOverdueSelection(demandaId) {
+        if (selectedOverdueDemands.has(demandaId)) {
+            selectedOverdueDemands.delete(demandaId);
+        } else {
+            selectedOverdueDemands.add(demandaId);
+        }
+        
+        // Atualizar contador
+        const countElement = document.getElementById('selectedOverdueCount');
+        if (countElement) {
+            countElement.textContent = `${selectedOverdueDemands.size} demandas selecionadas`;
+        }
+    }
+
+    // Selecionar todas as demandas atrasadas
+    function selectAllOverdue() {
+        const checkboxes = document.querySelectorAll('#atrasadasContainer .demanda-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            const demandaId = parseInt(checkbox.id.replace('checkbox_', ''));
+            selectedOverdueDemands.add(demandaId);
+        });
+        
+        // Atualizar contador
+        const countElement = document.getElementById('selectedOverdueCount');
+        if (countElement) {
+            countElement.textContent = `${selectedOverdueDemands.size} demandas selecionadas`;
+        }
+    }
+
+    // Desmarcar todas as demandas atrasadas
+    function deselectAllOverdue() {
+        const checkboxes = document.querySelectorAll('#atrasadasContainer .demanda-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        selectedOverdueDemands.clear();
+        
+        // Atualizar contador
+        const countElement = document.getElementById('selectedOverdueCount');
+        if (countElement) {
+            countElement.textContent = '0 demandas selecionadas';
+        }
+    }
+
+    // Reatribuir demandas atrasadas selecionadas
+    function reassignSelectedOverdue() {
+        if (selectedOverdueDemands.size === 0) {
+            showNotification('warning', 'Nenhuma Demanda Selecionada', 'Por favor, selecione pelo menos uma demanda para reatribuir.');
+            return;
+        }
+        
+        // Para simplificar, vamos pegar a primeira demanda selecionada
+        const firstDemandaId = Array.from(selectedOverdueDemands)[0];
+        const primeiraDemanda = todasDemandas.find(d => d.id === firstDemandaId);
+        
+        if (primeiraDemanda) {
+            abrirModalReatribuicao(firstDemandaId);
+        }
+    }
+
+    // Estender prazos de demandas atrasadas selecionadas
+    function extendSelectedDeadlines() {
+        if (selectedOverdueDemands.size === 0) {
+            showNotification('warning', 'Nenhuma Demanda Selecionada', 'Por favor, selecione pelo menos uma demanda para estender o prazo.');
+            return;
+        }
+        
+        // Para simplificar, vamos pegar a primeira demanda selecionada
+        const firstDemandaId = Array.from(selectedOverdueDemands)[0];
+        const primeiraDemanda = todasDemandas.find(d => d.id === firstDemandaId);
+        
+        if (primeiraDemanda) {
+            abrirModalExtensaoPrazo(firstDemandaId);
+        }
+    }
+
+    // Abrir modal de extensão de prazo
+    function abrirModalExtensaoPrazo(demandaId) {
+        const demanda = todasDemandas.find(d => d.id === demandaId);
+        if (!demanda) return;
+
+        document.getElementById('extendDeadlineForm').reset();
+        showModal('extendDeadlineModal', 'Estender Prazo da Demanda');
+    }
+
+    // Salvar extensão de prazo
+    async function salvarExtensaoPrazo() {
+        const motivo = document.getElementById('extendReason').value;
+        const novaDataLimite = document.getElementById('novaDataLimiteExt').value;
+
+        if (!motivo || !novaDataLimite) {
+            showNotification('warning', 'Campos Obrigatórios', 'Por favor, preencha todos os campos.');
+            return;
+        }
+
+        // Processar cada demanda selecionada
+        const promises = Array.from(selectedOverdueDemands).map(async (demandaId) => {
+            const demanda = todasDemandas.find(d => d.id === demandaId);
+            if (!demanda) return;
+
+            const dadosAtualizados = {
+                dataLimite: novaDataLimite,
+                comentarioGestor: `Prazo estendido. Motivo: ${motivo}`
+            };
+
+            return await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
+        });
+
+        try {
+            const results = await Promise.all(promises);
+            const successCount = results.filter(r => r).length;
+            
+            if (successCount > 0) {
+                showNotification('success', 'Prazos Estendidos', `${successCount} prazos foram estendidos com sucesso.`);
+                closeModal('extendDeadlineModal');
+                await carregarDadosDoServidor();
+                renderizarAtrasadas();
+                
+                // Notificar os donos das demandas
+                Array.from(selectedOverdueDemands).forEach(demandaId => {
+                    const demanda = todasDemandas.find(d => d.id === demandaId);
+                    if (demanda) {
+                        addUserNotification('info', 'Prazo Estendido', 
+                            `O prazo da sua demanda "${demanda.nomeDemanda}" foi estendido.`, 
+                            { tag: demanda.tag }
+                        );
+
+                        // Enviar email para o dono da demanda
+                        const dono = usuarios.find(u => u.id === demanda.funcionarioId);
+                        if (dono) {
+                            const assunto = encodeURIComponent(`Prazo Estendido: ${demanda.nomeDemanda}`);
+                            const corpo = encodeURIComponent(`Prezado(a) ${dono.nome},\n\nO prazo da sua demanda foi estendido.\n\n--- Detalhes da Demanda ---\nNome: ${demanda.nomeDemanda}\nTAG: ${demanda.tag}\n\n--- Novo Prazo ---\n${new Date(novaDataLimite).toLocaleDateString('pt-BR')}\n\n--- Motivo da Extensão ---\n${motivo}\n\nPor favor, acesse o sistema para mais detalhes.\n\nAtenciosamente,\nGestão`);
+                            
+                            window.open(`mailto:${dono.email}?subject=${assunto}&body=${corpo}`, '_blank');
+                        }
+                    }
+                });
+            } else {
+                showNotification('error', 'Erro ao Estender Prazos', 'Não foi possível estender os prazos das demandas selecionadas.');
+            }
+        } catch (error) {
+            console.error('Erro ao estender prazos:', error);
+            showNotification('error', 'Erro ao Estender Prazos', 'Ocorreu um erro ao processar a solicitação.');
+        }
+    }
+
     // Calcular desempenho de tempo
     function calcularDesempenhoTempo(dataCriacao, dataConclusao, dataLimite) {
         const conclusao = new Date(dataConclusao);
@@ -4639,6 +4890,21 @@
                     
                     addUserNotification('success', 'Demanda Aprovada', `Sua demanda "${demanda.nomeDemanda}" foi aprovada!`, { tag: demanda.tag });
                 }
+                
+                // Notificar também os atribuídos
+                if (demanda.atribuidos && Array.isArray(demanda.atribuidos)) {
+                    demanda.atribuidos.forEach(atribuido => {
+                        if (atribuido.id !== demanda.funcionarioId) {
+                            const usuarioAtribuido = usuarios.find(u => u.id === atribuido.id);
+                            if (usuarioAtribuido) {
+                                addUserNotification('success', 'Demanda Aprovada', 
+                                    `A demanda "${demanda.nomeDemanda}" foi aprovada!`, 
+                                    { tag: demanda.tag }
+                                );
+                            }
+                        }
+                    });
+                }
             }
         }
     }
@@ -4677,7 +4943,6 @@
                 ${demanda.comentarioReprovacaoAtribuicao ? `<p><strong>Motivo da Reprovação:</strong> ${demanda.comentarioReprovacaoAtribuicao}</p>` : ''}
                 ${demanda.isRotina ? `<p><strong>Tipo:</strong> Tarefa de Rotina</p>` : ''}
                 ${atribuidosInfo}
-                <p><strong>TAG:</strong> ${demanda.tag || ''}</p>
             </div>
         `;
         
@@ -4692,17 +4957,18 @@
         
         if (diferenca < 0) {
             const diasAtraso = Math.floor(Math.abs(diferenca) / (1000 * 60 * 60 * 24));
-            const horasAtraso = Math.floor((Math.abs(diferenca) % (1000 * 60 * 60 * 24)) / (1000 * 60));
-            const minutosAtraso = Math.floor((Math.abs(diferenca) % (1000 * 60)) / 1000);
+            const horasAtraso = Math.floor((Math.abs(diferenca) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutosAtraso = Math.floor((Math.abs(diferenca) % (1000 * 60 * 60)) / (1000 * 60));
             const segundosAtraso = Math.floor((Math.abs(diferenca) % (1000 * 60)) / 1000);
             
             return `${diasAtraso}d ${horasAtraso}h ${minutosAtraso}m ${segundosAtraso}s`;
         } else {
             const diasRestantes = Math.floor(diferenca / (1000 * 60 * 60 * 24));
-            const horasRestantes = Math.floor((diferenca % (1000 * 60 * 60 * 24)) / (1000 * 60));
-            const minutosRestantes = Math.floor((diferenca % (1000 * 60)) / 1000);
+            const horasRestantes = Math.floor((diferenca % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutosRestantes = Math.floor((diferenca % (1000 * 60 * 60)) / (1000 * 60));
+            const segundosRestantes = Math.floor((diferenca % (1000 * 60)) / 1000);
             
-            return `${diasRestantes}d ${horasRestantes}h ${minutosRestantes}m`;
+            return `${diasRestantes}d ${horasRestantes}h ${minutosRestantes}m ${segundosRestantes}s`;
         }
     }
 
@@ -4720,13 +4986,13 @@
                         const match = onclick.match(/abrirModalResolucao\((\d+)/);
                         if (match) demandaId = parseInt(match[1]);
                     } else if (onclick && onclick.includes('aprovarDemanda')) {
-                        const match = onclick.match(/aprovarDemanda\((\d+),\s*'[^']*)/);
+                        const match = onclick.match(/aprovarDemanda\((\d+)/);
                         if (match) demandaId = parseInt(match[1]);
                     } else if (onclick && onclick.includes('abrirModalReprovar')) {
                         const match = onclick.match(/abrirModalReprovar\((\d+)/);
                         if (match) demandaId = parseInt(match[1]);
                     } else if (onclick && onclick.includes('apagarDemanda')) {
-                        const match = onclick(/apagarDemanda\((\d+)/);
+                        const match = onclick.match(/apagarDemanda\((\d+)/);
                         if (match) demandaId = parseInt(match[1]);
                     }
                 });
@@ -4756,4351 +5022,46 @@
         }
     }
 
-    // Alternar campos de rotina
-    function toggleRoutineFields() {
-        const rotinaCheckbox = document.getElementById('rotinaCheckbox');
-        const diasSemanaGroup = document.getElementById('diasSemanaGroup');
-        
-        if (diasSemanaGroup) {
-            diasSemanaGroup.style.display = rotinaCheckbox.checked ? 'block' : 'none';
-        }
-    }
-
-    // Mostrar notificação
-    function showNotification(type, title, message) {
-        const notification = document.getElementById('notification');
-        const titleElement = document.getElementById('notificationTitle');
-        const messageElement = document.getElementById('notificationMessage');
-        
-        if (!notification || !titleElement || !messageElement) {
-            console.error('Elementos de notificação não encontrados!');
-            return;
-        }
-        
-        notification.className = `notification ${type} show`;
-        titleElement.textContent = title;
-        messageElement.textContent = message;
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 5000);
-    }
-
-    // Resetar filtros
-    function resetFilters() {
-        document.getElementById('filtroFuncionario').value = 'todos';
-        document.getElementById('filtroPeriodo').value = '7';
-        document.getElementById('filtroCategoria').value = 'todas';
-        document.getElementById('filtroPrioridade').value = 'todas';
-        
-        filtrarDashboard();
-        showNotification('info', 'Filtros Resetados', 'Todos os filtros foram resetados');
-    }
-
-    // Filtrar dashboard
-    function filtrarDashboard() {
-        filtroFuncionarioAtual = document.getElementById('filtroFuncionario').value;
-        atualizarDashboard();
-        atualizarGraficos();
-    }
-
-    // Drill down
-    function drillDown(type) {
-        showNotification('info', 'Análise Detalhada', `Analisando detalhes de ${type}...`);
-        
-        setTimeout(() => {
-            switchTab('pendentes');
-        }, 1000);
-    }
-
-    // Inicializar importação JSON
-    function inicializarImportacaoJSON() {
-    }
-
-    // Verificar lembretes
-    function verificarLembretes() {
-        const reminderContainer = document.getElementById('reminderContainer');
-        const reminderList = document.getElementById('reminderList');
-        
-        if (!reminderContainer || !reminderList) return;
-        
-        const agora = new Date();
-        const amanha = new Date(agora);
-        amanha.setDate(amanha.getDate() + 1);
-        
-        // Filtrar demandas que vencem nas próximas 24 horas
-        const demandasProximas = getDemandasParaUsuarioLogado().filter(d => {
-            if (d.status === 'aprovada' || d.status === 'reprovada') return false;
-            
-            const dataLimite = new Date(d.dataLimite);
-            return dataLimite >= agora && dataLimite <= amanha;
-        });
-        
-        if (demandasProximas.length > 0) {
-            reminderContainer.style.display = 'block';
-            reminderList.innerHTML = '';
-            
-            demandasProximas.forEach(demanda => {
-                const reminderItem = document.createElement('div');
-                reminderItem.className = 'reminder-item';
-                
-                const dataLimite = new Date(d.dataLimite);
-                const horasRestantes = Math.floor((dataLimite - agora) / (1000 * 60 * 60));
-                
-                reminderItem.innerHTML = `
-                    <strong>${demanda.nomeDemanda}</strong>
-                    <p>Vence em ${horasRestantes} horas</p>
-                    <small>TAG: ${demanda.tag}</small>
-                `;
-                
-                reminderList.appendChild(reminderItem);
-            });
-        } else {
-            reminderContainer.style.display = 'none';
-        }
-    }
-
-    // Renderizar cobrança
-    function renderizarCobranca() {
-        const cobrancaContainer = document.getElementById('cobrancaContainer');
-        if (!cobrancaContainer) return;
-        
-        const funcionarioFilter = document.getElementById('cobrancaFuncionario').value;
-        const prioridadeFilter = document.getElementById('cobrancaPrioridade').value;
-        
-        let atrasadas = getDemandasParaUsuarioLogado().filter(d => {
-            if (d.status === 'aprovada') return false;
-            const dataLimite = new Date(d.dataLimite);
-            const hoje = new Date();
-            return dataLimite < hoje;
-        });
-        
-        if (funcionarioFilter !== 'todos') {
-            atrasadas = atrasadas.filter(d => d.funcionarioId == funcionarioFilter);
-        }
-        
-        if (prioridadeFilter !== 'todas') {
-            atrasadas = atrasadas.filter(d => d.prioridade === prioridadeFilter);
-        }
-        
-        cobrancaContainer.innerHTML = '';
-        
-        if (atrasadas.length === 0) {
-            cobrancaContainer.innerHTML = '<p>Nenhuma demanda atrasada encontrada com os filtros selecionados.</p>';
-            return;
-        }
-        
-        const demandasPorFuncionario = {};
-        atrasadas.forEach(demanda => {
-            if (!demandasPorFuncionario[demanda.funcionarioId]) {
-                demandasPorFuncionario[demanda.funcionarioId] = {
-                    nome: demanda.nomeFuncionario,
-                    email: demanda.emailFuncionario,
-                    demandas: []
-                };
-            }
-            demandasPorFuncionario[demanda.funcionarioId].demandas.push(demanda);
-        });
-        
-        Object.values(demandasPorFuncionario).forEach(funcionario => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            
-            const checkboxId = `func_${funcionario.nome.replace(/\s+/g, '_')}`;
-            
-            card.innerHTML = `
-                <div class="card-header">
-                    <h3><i class="fas fa-user"></i> ${funcionario.nome}</h3>
-                    <div class="card-actions">
-                        <input type="checkbox" id="${checkboxId}" class="func-checkbox" onchange="toggleFuncionarioSelection('${funcionario.nome.replace(/'/g, '_')}')">
-                        <label for="${checkboxId}">Selecionar</label>
-                    </div>
-                </div>
-                <div class="demandas-list">
-                    ${funcionario.demandas.map(demanda => {
-                        const dataLimite = new Date(demanda.dataLimite);
-                        const hoje = new Date();
-                        const diasAtraso = Math.floor((hoje - dataLimite) / (1000 * 60 * 60 * 24));
-                        const tempoAtraso = calcularTempoRestante(demanda.dataLimite);
-                        
-                        return `
-                            <div class="demanda-item atrasado">
-                                <div class="demanda-info">
-                                    <strong>${demanda.nomeDemanda || demanda.descricao}</strong>
-                                    <small>Categoria: ${demanda.categoria} | Prioridade: ${demanda.prioridade} | Data Limite: ${dataLimite.toLocaleDateString('pt-BR')}</small>
-                                    <small><strong>TAG:</strong> ${demanda.tag}</small>
-                                    <div class="time-remaining">ATRASADA HÁ ${tempoAtraso}</div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="card-actions">
-                    <button class="success" onclick="enviarEmailCobranca('${funcionario.nome}', '${funcionario.email}')">
-                        <i class="fas fa-envelope"></i> Enviar Email de Cobrança
-                    </button>
-                </div>
-            `;
-            
-            cobrancaContainer.appendChild(card);
-        });
-        
-        atualizarPreviaEmail();
-    }
-
-    // Filtrar cobrança
-    function filtrarCobranca() {
-        renderizarCobranca();
-    }
-
-    // Resetar filtros de cobrança
-    function resetFiltrosCobranca() {
-        document.getElementById('cobrancaFuncionario').value = 'todos';
-        document.getElementById('cobrancaPrioridade').value = 'todas';
-        renderizarCobranca();
-    }
-
-    // Enviar email de cobrança
-    function enviarEmailCobranca(nomeFuncionario, emailFuncionario) {
-        const demandasAtrasadas = getDemandasParaUsuarioLogado().filter(d => {
-            if (d.status === 'aprovada') return false;
-            if (d.nomeFuncionario !== nomeFuncionario) return false;
-            const dataLimite = new Date(d.dataLimite);
-            const hoje = new Date();
-            return dataLimite < hoje;
-        });
-        
-        if (demandasAtrasadas.length === 0) {
-            showNotification('warning', 'Nenhuma Demanda Atrasada', `${nomeFuncionario} não possui demandas atrasadas.`);
-            return;
-        }
-        
-        let corpoEmail = `Prezado(a) ${nomeFuncionario},\n\n`;
-        corpoEmail += `Identificamos que você possui ${demandasAtrasadas.length} demanda(s) em atraso. Por favor, verifique e regularize a situação o mais breve possível.\n\n`;
-        corpoEmail += `--- Demandas em Atraso ---\n\n`;
-        
-        demandasAtrasadas.forEach(demanda => {
-            const dataLimite = new Date(demanda.dataLimite);
-            const hoje = new Date();
-            const diasAtraso = Math.floor((hoje - dataLimite) / (1000 * 60 * 60 * 24));
-            const tempoAtraso = calcularTempoRestante(demanda.dataLimite);
-            
-            corpoEmail += `• ${demanda.nomeDemanda || demanda.descricao}\n`;
-            corpoEmail += `  Categoria: ${demanda.categoria}\n`;
-            corpoEmail += `  Prioridade: ${demanda.prioridade}\n`;
-            corpoEmail += `  Data Limite: ${dataLimite.toLocaleDateString('pt-BR')}\n`;
-            corpoEmail += `  Dias de Atraso: ${diasAtraso}\n`;
-            corpoEmail += `  TAG: ${demanda.tag}\n\n`;
-        });
-        
-        corpoEmail += `Por favor, acesse o sistema para atualizar o status das demandas ou entrar em contato caso necessite de suporte.\n\n`;
-        corpoEmail += `Atenciosamente,\nGestão`;
-        
-        const assunto = encodeURIComponent(`Cobrança de Demandas em Atraso - ${demandasAtrasadas.length} pendente(s)`);
-        const corpo = encodeURIComponent(corpoEmail);
-        
-        window.open(`mailto:${emailFuncionario}?subject=${assunto}&body=${corpo}`, '_blank');
-        
-        showNotification('success', 'Email de Cobrança', `Email de cobrança para ${nomeFuncionario} foi aberto para envio.`);
-    }
-
-    // Enviar emails em lote
-    function sendBulkEmail() {
-        const checkboxes = document.querySelectorAll('.func-checkbox:checked');
-        
-        if (checkboxes.length === 0) {
-            showNotification('warning', 'Nenhum Funcionário Selecionado', 'Por favor, selecione pelo menos um funcionário para enviar emails em lote.');
-            return;
-        }
-        
-        if (!confirm(`Tem certeza que deseja enviar emails de cobrança para ${checkboxes.length} funcionário(s)?`)) {
-            return;
-        }
-        
-        const emails = [];
-        checkboxes.forEach(checkbox => {
-            const card = checkbox.closest('.card');
-            const nome = card.querySelector('h3').textContent.trim();
-            const funcionario = usuarios.find(u => u.nome === nome);
-            if (funcionario) {
-                emails.push({
-                    nome: funcionario.nome,
-                    email: funcionario.email
-                });
-            }
-        });
-        
-        emails.forEach((item, index) => {
-            setTimeout(() => {
-                enviarEmailCobranca(item.nome, item.email);
-            }, index * 1000);
-        });
-    }
-
-    // Exportar demandas
-    function exportarDemandas() {
-        const format = document.getElementById('exportFormat').value;
-        const dadosParaExportar = todasDemandas;
-
-        if (dadosParaExportar.length === 0) {
-            showNotification('warning', 'Sem Dados', 'Não há demandas para exportar.');
-            return;
-        }
-
-        if (format === 'json') {
-            exportarJSON(dadosParaExportar);
-        } else if (format === 'csv') {
-            exportarCSV(dadosParaExportar);
-        } else {
-            showNotification('error', 'Formato Inválido', 'Selecione um formato de exportação válido (CSV ou JSON).');
-        }
-    }
-
-    // Exportar JSON
-    function exportarJSON(dados) {
-        try {
-            const jsonString = JSON.stringify(dados, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `demandas_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showNotification('success', 'Exportação Concluída', 'Os dados foram exportados em formato JSON.');
-        } catch (error) {
-            console.error('Erro ao exportar JSON:', error);
-            showNotification('error', 'Erro na Exportação', 'Ocorreu um erro ao gerar o arquivo JSON.');
-        }
-    }
-
-    // Exportar CSV
-    function exportCSV(dados) {
-        if (dados.length === 0) {
-            showNotification('warning', 'Sem Dados', 'Não há dados para exportar.');
-            return;
-        }
-        
-        const headers = Object.keys(dados[0]);
-        let csvContent = headers.join(',') + '\n';
-        
-        dados.forEach(item => {
-            const values = headers.map(header => {
-                let value = item[header] || '';
-                if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                    value = `"${value.replace(/"/g, '""')}"`;
-                }
-                return value;
-            });
-            csvContent += values.join(',') + '\n';
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `demandas_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        showNotification('success', 'Exportação Concluída', 'Os dados foram exportados em formato CSV.');
-    }
-
-    // Renderizar todas as abas
-    function renderizarTodasAsAbas() {
-        renderizarDemandas();
-        renderizarAnalise();
-        renderizarAtrasadas();
-        renderizarAprovadas();
-        renderizarPendentesColaboradores();
-        renderizarCobranca();
-        atualizarDashboard();
-        atualizarRanking();
-        atualizarGraficos();
-    }
-
-    // Importar demandas
-    function importarDemandas() {
-        const fileInput = document.getElementById('importFile');
-        if (!fileInput.files.length) {
-            showNotification('warning', 'Nenhum Arquivo Selecionado', 'Por favor, selecione um arquivo JSON para importar.');
-            return;
-        }
-
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-
-        reader.onload = async function(event) {
-            try {
-                let importedData = JSON.parse(event.target.result);
-
-                if (!Array.isArray(importedData)) {
-                    throw new Error("O arquivo JSON deve conter uma lista de demandas.");
-                }
-
-                // Normaliza cada demanda importada ANTES de qualquer processamento
-                const normalizedImportedData = importedData.map(demanda => normalizarDadosDemanda(demanda));
-
-                let updatedCount = 0;
-                let addedCount = 0;
-                let skippedCount = 0;
-
-                // Primeiro, vamos obter as demandas atuais do servidor para garantir que temos a lista mais recente
-                await carregarDadosDoServidor();
-
-                for (const demandaImportada of normalizedImportedData) {
-                    const demandaExistente = todasDemandas.find(d => d.id === demandaImportada.id);
-                    
-                    if (demandaExistente) {
-                        const dadosAtualizados = {
-                            ...demandaImportada,
-                            id: demandaExistente.id
-                        };
-                        
-                        delete dadosAtualizados.dataCriacao;
-                        
-                        const sucesso = await atualizarDemandaNoServidor(demandaExistente.id, dadosAtualizados);
-                        
-                        if (sucesso) {
-                            updatedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                    } else {
-                        if (!demandaImportada.id) {
-                           demandaImportada.id = Date.now() + Math.random();
-                        }
-                        
-                        if (!demandaImportada.tag) {
-                            demandaImportada.tag = `DEM-IMP-${Date.now()}`;
-                        }
-                        
-                        const sucesso = await salvarDemandaNoServidor(demandaImportada);
-                        
-                        if (sucesso) {
-                            addedCount++;
-                        } else {
-                            skippedCount++;
-                        }
-                    }
-                }
-
-                await carregarDadosDoServidor();
-                renderizarTodasAsAbas();
-                
-                let message = `Importação concluída. `;
-                if (updatedCount > 0) message += `${updatedCount} demanda(s) atualizada(s). `;
-                if (addedCount > 0) message += `${addedCount} nova(s) demanda(s) adicionada(s). `;
-                if (skippedCount > 0) message += `${skippedCount} demanda(s) ignorada(s) por erro.`;
-                
-                showNotification('success', 'Importação Concluída', message);
-                fileInput.value = '';
-            } catch (error) {
-                console.error('Erro ao importar o arquivo JSON:', error);
-                showNotification('error', 'Erro na Importação', `Falha ao ler o arquivo: ${error.message}. Verifique se o formato está correto.`);
-            }
-        };
-
-        reader.readAsText(file);
-    }
-
-    // Função para normalizar dados de uma demanda
-    function normalizarDadosDemanda(demanda) {
-        if (!demanda) return demanda;
-
-        // Garante que 'diasSemana' seja um array
-        if (typeof demanda.diasSemana === 'string') {
-            try {
-                demanda.diasSemana = JSON.parse(demanda.diasSemana);
-            } catch (e) {
-                demanda.diasSemana = [];
-            }
-        } else if (!Array.isArray(demanda.diasSemana)) {
-            demanda.diasSemana = [];
-        }
-
-        // Garante que 'atribuidos' seja um array
-        if (typeof demanda.atribuidos === 'string') {
-            try {
-                demanda.atribuidos = JSON.parse(demanda.atribuidos);
-            } catch (e) {
-                demanda.atribuidos = [];
-            }
-        } else if (!Array.isArray(demanda.atribuidos)) {
-            demanda.atribuidos = [];
-        }
-
-        // Garante que 'isRotina' seja um booleano
-        demanda.isRotina = Boolean(demanda.isRotina);
-
-        return demanda;
-    }
-
-    // Função para obter demandas para o usuário logado
-    function getDemandasParaUsuarioLogado() {
-        if (!usuarioLogado) return [];
-        
-        // Para gestores, apenas as demandas que eles criaram ou que foram atribuídas a eles
-        if (usuarioLogado.role === 'gestor') {
-            return todasDemandas.filter(d => 
-                d.funcionarioId === usuarioLogado.id || 
-                (d.atribuidos && d.atribuidos.some(a => a.id === usuarioLogado.id))
-            );
-        }
-        
-        // Para funcionários, as demandas que eles criaram ou que foram atribuídas a eles
-        if (usuarioLogado.role === 'funcionario') {
-            return todasDemandas.filter(demanda => {
-                const eCriador = demanda.funcionarioId === usuarioLogado.id;
-                const eAtribuido = Array.isArray(demanda.atribuidos) && demanda.atribuidos.some(a => a.id === usuarioLogado.id);
-                return eCriador || eAtribuido;
-            });
-        }
-        return [];
-    }
-
-    // Obter demandas dos colaboradores
-    function getDemandasDosColaboradores() {
-        if (!usuarioLogado || usuarioLogado.role !== 'gestor') return [];
-        
-        return todasDemandas.filter(demanda => {
-            return usuarios.some(u => u.role === 'funcionario' && u.id === demanda.funcionarioId);
-        });
-    }
-
-    // Obter demandas filtradas
-    function getDemandasFiltradas() {
-        let demandasBase = getDemandasParaUsuarioLogado();
-
-        if (filtroFuncionarioAtual !== 'todos') {
-            demandasBase = demandasBase.filter(d => d.funcionarioId == filtroFuncionarioAtual);
-        }
-        
-        const periodo = document.getElementById('filtroPeriodo')?.value;
-        if (periodo && periodo !== 'all') {
-            const diasAtras = parseInt(periodo);
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - diasAtras);
-            demandasBase = demandasBase.filter(d => new Date(d.dataCriacao) >= cutoffDate);
-        }
-        
-        const categoria = document.getElementById('filtroCategoria')?.value;
-        if (categoria && categoria !== 'todas') {
-            demandasBase = demandasBase.filter(d => d.categoria === categoria);
-        }
-        
-        const prioridade = document.getElementById('filtroPrioridade')?.value;
-        if (prioridade && prioridade !== 'todas') {
-            demandasBase = demandasBase.filter(d => d.prioridade === prioridade);
-        }
-        
-        return demandasBase;
-    }
-
-    // Salvar anotação
-    function salvarAnotacao() {
-        const title = document.getElementById('noteTitle').value;
-        const content = document.getElementById('noteContent').value;
-        const color = document.getElementById('noteColor').value;
-        const assignedTo = document.getElementById('noteAssignTo').value;
-        
-        if (!title || !content) {
-            showNotification('warning', 'Campos Obrigatórios', 'Por favor, preencha o título e o conteúdo da anotação.');
-            return;
-        }
-
-        const newNote = {
-            id: Date.now(),
-            title,
-            content,
-            color,
-            date: new Date().toISOString(),
-            createdBy: usuarioLogado.id,
-            assignedTo: assignedTo ? parseInt(assignedTo) : null
-        };
-        
-        notes.unshift(newNote);
-        salvarAnotacoes();
-        renderizarAnotacoes();
-        closeModal('noteModal');
-        
-        showNotification('success', 'Anotação Salva', 'Sua anotação foi salva com sucesso.');
-
-        // Se a anotação foi atribuída a alguém, notificar
-        if (assignedTo) {
-            const assignedUser = usuarios.find(u => u.id === assignedTo);
-            if (assignedUser) {
-                addUserNotification('info', 'Anotação Atribuída', 
-                    `Uma anotação "${title}" foi atribuída a você.`, 
-                    { tag: `NOTE-${newNote.id}` }
-                );
-            }
-        }
-    }
-
-    // Carregar anotações
-    function carregarAnotacoes() {
-        const storageKey = `notes_${usuarioLogado?.id || 'guest'}`;
-        const saved = localStorage.getItem(storageKey);
-        
-        if (saved) {
-            try {
-                notes = JSON.parse(saved);
-            } catch (e) {
-                console.error('Erro ao carregar anotações:', e);
-                notes = [];
-            }
-        } else {
-            notes = [];
-        }
-        
-        renderizarAnotacoes();
-    }
-
-    // Salvar anotações no storage
-    function salvarAnotacoes() {
-        if (!usuarioLogado) return;
-        
-        const storageKey = `notes_${usuarioLogado.id}`;
-        localStorage.setItem(storageKey, JSON.stringify(notes));
-    }
-
-    // Renderizar anotações
-    function renderizarAnotacoes() {
-        const notesContainer = document.getElementById('notesContainer');
-        if (!notesContainer) return;
-
-        const monthFilter = document.getElementById('notesMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('notesYearFilter')?.value || '';
-
-        let filteredNotes = notes;
-        if (monthFilter || yearFilter) {
-            filteredNotes = notes.filter(note => {
-                const noteDate = new Date(note.date);
-                const matchesMonth = !monthFilter || String(noteDate.getMonth() + 1).padStart(2, '0') === monthFilter;
-                const matchesYear = !yearFilter || noteDate.getFullYear() == yearFilter;
-                return matchesMonth && matchesYear;
-            });
-        }
-
-        if (filteredNotes.length === 0) {
-            notesContainer.innerHTML = '<p class="empty-state"><i class="fas fa-sticky-note"></i> Nenhuma anotação encontrada. Crie sua primeira anotação!</p>';
-            return;
-        }
-
-        notesContainer.innerHTML = '';
-        
-        filteredNotes.forEach(note => {
-            const noteElement = document.createElement('div');
-            noteElement.className = 'note-item';
-            noteElement.style.borderLeft = `4px solid ${note.color || '#3498db'}`;
-            
-            noteElement.innerHTML = `
-                <div class="note-header">
-                    <h4>${note.title}</h4>
-                    <div class="note-date">${formatDate(note.date)}</div>
-                    ${note.assignedTo ? `<small><strong>Atribuída a:</strong> ${usuarios.find(u => u.id === note.assignedTo)?.nome || 'Não atribuída'}</small>` : ''}
-                    <div class="note-actions">
-                        <button onclick="editNote(${note.id})" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="deleteNote(${note.id})" title="Excluir">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="note-content">${note.content.replace(/\n/g, '<br>')}</div>
-            `;
-            
-            notesContainer.appendChild(noteElement);
-        });
-    }
-
-    // Editar anotação
-    function editNote(id) {
-        const note = notes.find(n => n.id === id);
-        if (!note) return;
-        
-        document.getElementById('noteModalTitle').textContent = 'Editar Anotação';
-        document.getElementById('noteTitle').value = note.title;
-        document.getElementById('noteContent').value = note.content;
-        document.getElementById('noteColor').value = note.color || '#3498db';
-        document.getElementById('noteAssignTo').value = note.assignedTo || '';
-        
-        // Modificar o formulário para atualizar em vez de criar
-        const form = document.getElementById('noteForm');
-        form.onsubmit = function(e) {
-            e.preventDefault();
-            
-            note.title = document.getElementById('noteTitle').value;
-            note.content = document.getElementById('noteContent').value;
-            note.color = document.getElementById('noteColor').value;
-            note.assignedTo = document.getElementById('noteAssignTo').value ? parseInt(document.getElementById('noteAssignTo').value) : null;
-            
-            salvarAnotacoes();
-            renderizarAnotacoes();
-            closeModal('noteModal');
-            
-            showNotification('success', 'Anotação Atualizada', 'Sua anotação foi atualizada com sucesso.');
-            
-            // Restaurar função original
-            form.onsubmit = function(e) {
-                e.preventDefault();
-                salvarAnotacao();
-            };
-        };
-        
-        document.getElementById('noteModal').style.display = 'block';
-    }
-
-    // Deletar anotação
-    function deleteNote(id) {
-        if (!confirm('Tem certeza que deseja excluir esta anotação?')) return;
-        
-        notes = notes.filter(n => n.id !== id);
-        salvarAnotacoes();
-        renderizarAnotacoes();
-        
-        showNotification('info', 'Anotação Excluída', 'A anotação foi excluída com sucesso.');
-    }
-
-    // Feedbacks
-    function carregarFeedbacks() {
-        const storageKey = 'feedbacks';
-        const saved = localStorage.getItem(storageKey);
-        
-        if (saved) {
-            try {
-                feedbacks = JSON.parse(saved);
-            } catch (e) {
-                console.error('Erro ao carregar feedbacks:', e);
-                feedbacks = [];
-            }
-        } else {
-            feedbacks = [];
-        }
-    }
-
-    // Salvar feedbacks
-    function salvarFeedbacks() {
-        localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
-    }
-
-    // Carregar dados do servidor
-    async function carregarDadosDoServidor() {
-        try {
-            const response = await fetch(`${SERVER_URL}/api/demandas`);
-            if (response.ok) {
-                const demandasDoServidor = await response.json();
-                
-                // Normaliza os dados recebidos
-                const demandasNormalizadas = demandasDoServidor.map(demanda => normalizarDadosDemanda(demanda));
-                
-                demandasNormalizadas.forEach(demanda => {
-                    if (!todasDemandas.find(d => d.id === demanda.id)) {
-                        todasDemandas.push(demanda);
-                    }
-                });
-                
-            } else {
-                showNotification('error', 'Erro de Conexão', 'Não foi possível conectar ao servidor.');
-            }
-        } catch (error) {
-            console.error('Erro de conexão com o servidor:', error);
-            showNotification('error', 'Erro de Conexão', 'Não foi possível conectar ao servidor.');
-        }
-        
-        renderizarDemandas();
-        renderizarCobranca();
-        atualizarBadges();
-        atualizarMindmap();
-    }
-
-    // Salvar demanda no servidor
-    async function salvarDemandaNoServidor(demanda) {
-        try {
-            const response = await fetch(`${SERVER_URL}/api/demandas`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(demanda)
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    return true;
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao salvar demanda no servidor:', error);
-            showNotification('error', 'Erro ao Salvar', 'Não foi possível salvar a demanda no servidor.');
-        }
-        return false;
-    }
-
-    // Atualizar demanda no servidor
-    async function atualizarDemandaNoServidor(id, dadosAtualizados) {
-        try {
-            const demandaExistente = todasDemandas.find(d => d.id === id);
-            if (!demandaExistente) return false;
-            const dadosCompletos = { ...demandaExistente, ...dadosAtualizados };
-
-            const response = await fetch(`${SERVER_URL}/api/demandas/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dadosCompletos)
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    return true;
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar demanda no servidor:', error);
-            showNotification('error', 'Erro ao Atualizar', 'Não foi possível atualizar a demanda no servidor.');
-        }
-        return false;
-    }
-
-    // Deletar demanda do servidor
-    async function deletarDemandaDoServidor(id) {
-        try {
-            const response = await fetch(`${SERVER_URL}/api/demandas/${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    return true;
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao deletar demanda do servidor:', error);
-            showNotification('error', 'Erro ao Deletar', 'Não foi possível deletar a demanda no servidor.');
-        }
-        return false;
-    }
-
-    // Alternar status
-    function alternarStatus(demandaId, novoStatus) {
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
-
-        const dadosAtualizados = { status: novoStatus };
-        
-        const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
-        
-        if (sucesso) {
-            await carregarDadosDoServidor();
-            
-            // Se for gestor, enviar email para o dono da demanda
-            if (usuarioLogado.role === 'gestor' && novoStatus === 'aprovada') {
-                const funcionario = usuarios.find(u => u.id === demanda.funcionarioId);
-                if (funcionario) {
-                    const assunto = encodeURIComponent(`Sua Demanda Foi Aprovada: ${demanda.nomeDemanda}`);
-                    const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeFuncionario},\n\nSua demanda foi analisada e aprovada.\n\n--- Detalhes ---\nNome: ${demanda.nomeDemanda}\nTAG: ${demanda.tag}\n\nParabéns pelo excelente trabalho!\n\nAtenciosamente,\nGestão`);
-                    window.open(`mailto:${funcionario.email}?subject=${assunto}&body=${corpo}`, '_blank');
-                    
-                    addUserNotification('success', 'Demanda Aprovada', `Sua demanda "${demanda.nomeDemanda}" foi aprovada!`, { tag: demanda.tag });
-                }
-            }
-            
-            // Se for funcionário, enviar email para o gestor
-            if (usuarioLogado.role === 'funcionario' && novoStatus === 'finalizado_pendente_aprovacao') {
-                const gestor = usuarios.find(u => u.role === 'gestor');
-                if (gestor) {
-                    const assunto = encodeURIComponent(`Demanda Concluída para Aprovação: ${demanda.nomeDemanda}`);
-                    const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeFuncionario},\n\nSua demanda foi resolvida e está aguardando sua aprovação.\n\n--- Detalhes da Demanda ---\nNome: ${demanda.nomeDemanda}\nTAG: ${demanda.tag}\n\n--- Comentários do Funcionário ---\n${demanda.comentarios}\n\nPor favor, acesse o sistema para aprovar ou reprovar esta demanda.\n\nAtenciosamente,\nGestão`);
-                    
-                    window.open(`mailto:${gestor.email}?subject=${assunto}&body=${corpo}`, '_blank');
-                    
-                    addUserNotification('info', 'Demanda para Aprovação', 
-                        `Sua demanda "${demanda.nomeDemanda}" está aguardando aprovação.`, 
-                        { tag: demanda.tag }
-                    );
-                }
-            }
-            
-            // Se for gestor, enviar email para o dono da demanda
-            if (usuarioLogado.role === 'gestor' && novoStatus === 'reprovada') {
-                const funcionario = usuarios.find(u => u.id === demanda.funcionarioId);
-                if (funcionario) {
-                    const assunto = encodeURIComponent(`Sua Demanda Foi Reprovada: ${demanda.nomeDemanda}`);
-                    const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeFuncionario},\n\nSua demanda foi analisada e reprovada.\n\n--- Motivo ---\n${document.getElementById('motivoReprovacao').value}\n\n--- Novo Prazo ---\n${document.getElementById('novaDataLimite').value ? new Date(document.getElementById('novaDataLimite').toLocaleDateString('pt-BR') : ''}</div>
-                    corpo += `Por favor, crie uma nova demanda com os ajustes necessários.\n\nAtenciosamente,\nGestão`;
-                    
-                    window.open(`mailto:${funcionario.email}?subject=${assunto}&body=${corpo}`, '_blank');
-                    
-                    addUserNotification('warning', `Demanda Reprovada`, `Sua demanda "${demanda.nomeDemanda}" foi reprovada.`, { tag: demanda.tag });
-                }
-            }
-            
-            // Atualizar badges
-            atualizarBadges();
-        }
-        
-        renderizarTodasAsAbas();
-    }
-
-    // Obter demandas por colaborador (modificado)
-    function getDemandasPorColaborador() {
-        if (!usuarioLogado || usuarioLogado.role !== 'gestor') return [];
-        
-        return todasDemandas.filter(demanda => {
-            // Se for gestor, mostrar todas as demandas
-            if (usuarioLogado.role === 'gestor') {
-                return true;
-            }
-            
-            // Se for funcionário, apenas as demandas que foram atribuídas a ele
-            if (usuarioLogado.role === 'funcionario') {
-                return (d.atribuidos && d.atribuidos.some(a => a.id === usuarioLogado.id));
-            }
-            
-            return false;
-        });
-    }
-
-    // Renderizar pendentes dos colaboradores (modificado)
-    function renderizarPendentesColaboradores() {
-        const demandasColaboradores = getDemandasPorColaborador();
-        const statusFilter = document.getElementById('colabFilter')?.value || 'todos';
-        const funcFilter = document.getElementById('colabFuncFilter')?.value || 'todos';
-        const localFilter = document.getElementById('colabLocalFilter')?.value || 'todos';
-        const monthFilter = document.getElementById('colabMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('colabYearFilter')?.value || '';
-
-        let demandas = demandasColaboradores.filter(d => {
-            const matchesStatus = statusFilter === 'todos' || d.status === statusFilter;
-            const matchesFunc = funcFilter === 'todos' || d.funcionarioId == funcFilter;
-            const matchesLocal = localFilter === 'todos' || d.local === localFilter;
-            const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            
-            return matchesStatus && matchesFunc && matchesLocal && matchesDate;
-        });
-        
-        const colabContainer = document.getElementById('colabContainer');
-        
-        if (colabContainer) {
-            if (demandas.length === 0) {
-                colabContainer.innerHTML = '<p>Nenhuma demanda dos colaboradores encontrada.</p>';
-            } else {
-                demandas.forEach(demanda => {
-                    colabContainer.appendChild(criarElementoDemanda(demanda));
-                });
-            }
-        }
-    }
-
-    // Renderizar análise (modificado)
-    function renderizarAnalise() {
-        // Obter demandas para o usuário logado
-        const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const statusFilter = document.getElementById('analiseFilter')?.value || 'todos';
-        const monthFilter = document.getElementById('analiseMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('analiseYearFilter')?.value || '';
-
-        let analise = demandasDoUsuario.filter(d => {
-            const matchesStatus = statusFilter === 'todos' || d.status === statusFilter;
-            
-            const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            
-            return matchesStatus && matchesDate && d.status === 'finalizado_pendente_aprovacao';
-        });
-        
-        const analiseContainer = document.getElementById('analiseContainer');
-        
-        if (analiseContainer) {
-            if (analise.length === 0) {
-                analiseContainer.innerHTML = '<p>Nenhuma demanda em análise no momento.</p>';
-            } else {
-                analise.forEach(demanda => {
-                    const elemento = criarElementoDemanda(demanda);
-                    analiseContainer.appendChild(elemento);
-                });
-            }
-        }
-    }
-
-    // Renderizar aprovadas (modificado)
-    function renderizarAprovadas() {
-        // Obter demandas para o usuário logado
-        const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const monthFilter = document.getElementById('aprovadasMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('aprovadasYearFilter')?.value || '';
-
-        let concluidas = demandasDoUsuario.filter(d => {
-            const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            
-            return matchesDate && d.status === 'aprovada';
-        });
-        
-        const aprovadasContainer = document.getElementById('aprovadasContainer');
-        
-        if (aprovadasContainer) {
-            if (concluidas.length === 0) {
-                aprovadasContainer.innerHTML = '<p>Nenhuma demanda concluída a ser exibida.</p>';
-            } else {
-                concluidas.forEach(demanda => {
-                    aprovadasContainer.appendChild(criarElementoDemanda(demanda));
-                });
-            }
-        }
-    }
-
-    // Renderizar atrasadas (modificado)
-    function renderizarAtrasadas() {
-        // Se for gestor, mostrar todas as demandas atrasadas dos colaboradores
-        let demandasParaMostrar;
-        if (usuarioLogado && usuarioLogado.role === 'gestor') {
-            demandasParaMostrar = todasDemandas.filter(d => {
-                if (d.status === 'aprovada') return false;
-                const dataLimite = new Date(d.dataLimite);
-                const hoje = new Date();
-                return dataLimite < hoje;
-            });
-        } else {
-            demandasParaMostrar = getDemandasParaUsuarioLogado().filter(d => {
-                if (d.status === 'aprovada') return false;
-                const dataLimite = new Date(d.dataLimite);
-                const hoje = new Date();
-                return dataLimite < hoje;
-            });
-        }
-
-        const monthFilter = document.getElementById('atrasadasMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('atrasadasYearFilter')?.value || '';
-
-        const atrasadasContainer = document.getElementById('atrasadasContainer');
-        
-        if (atrasadasContainer) atrasadasContainer.innerHTML = '';
-
-        let atrasadas = demandasParaMostrar.filter(d => {
-            const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            return matchesDate;
-        });
-        
-        // Mostrar ações em lote se houver demandas atrasadas
-        const batchActions = document.getElementById('overdueBatchActions');
-        if (batchActions) {
-            batchActions.style.display = atrasadas.length > 0 ? 'flex' : 'none';
-        }
-        
-        if (atrasadasContainer) {
-            if (atrasadas.length === 0) {
-                atrasadasContainer.innerHTML = '<p>Nenhuma demanda atrasada no momento.</p>';
-            } else {
-                atrasadas.forEach(demanda => {
-                    atrasadasContainer.appendChild(criarElementoDemanda(demanda, true));
-                });
-            }
-        }
-    }
-
-    // Renderizar concluídas (modificado)
-    function renderizarAprovadas() {
-        // Obter demandas para o usuário logado
-        const demandasDoUsuario = getDemandasParaUsuarioLogado();
-        const monthFilter = document.getElementById('aprovadasMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('aprovadasYearFilter')?.value || '';
-
-        let concluidas = demandasDoUsuario.filter(d => {
-            const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            
-            return matchesDate && d.status === 'aprovada';
-        });
-        
-        const aprovadasContainer = document.getElementById('aprovadasContainer');
-        
-        if (aprovadasContainer) {
-            if (concluidas.length === 0) {
-                aprovadasContainer.innerHTML = '<p>Nenhuma demanda concluída a ser exibida.</p>';
-            } else {
-                concluidas.forEach(demanda => {
-                    aprovadasContainer.appendChild(criarElementoDemanda(demanda));
-                });
-            }
-        }
-    }
-
-    // Renderizar pendentes dos colaboradores (modificado)
-    function renderizarPendentesColaboradores() {
-        const demandasColaboradores = getDemandasPorColaborador();
-        const statusFilter = document.getElementById('colabFilter')?.value || 'todos';
-        const funcFilter = document.getElementById('colabFuncFilter')?.value || 'todos';
-        const localFilter = document.getElementById('colabLocalFilter')?.value || 'todos';
-        const monthFilter = document.getElementById('colabMonthFilter')?.value || '';
-        const yearFilter = document.getElementById('colabYearFilter')?.value || '';
-
-        let demandas = demandasColaboradores.filter(d => {
-            const matchesStatus = statusFilter === 'todos' || d.status === statusFilter;
-            const matchesFunc = funcFilter === 'todos' || d.funcionarioId == funcFilter;
-            const matchesLocal = localFilter === 'todos' || d.local === localFilter;
-            const matchesDate = matchesDateFilter(d, monthFilter, yearFilter);
-            
-            return matchesStatus && matchesFunc && matchesLocal && matchesDate;
-        });
-        
-        const colabContainer = document.getElementById('colabContainer');
-        
-        if (colabContainer) {
-            if (demandas.length === 0) {
-                colabContainer.innerHTML = '<p>Nenhuma demanda dos colaboradores encontrada.</p>';
-            } else {
-                demandas.forEach(demanda => {
-                    colabContainer.appendChild(criarElementoDemanda(demanda));
-                });
-            }
-        }
-    }
-
-    // Função para obter demandas filtradas
-    function getDemandasFiltradas() {
-        let demandasBase = getDemandasParaUsuarioLogado();
-
-        if (filtroFuncionarioAtual !== 'todos') {
-            demandasBase = demandasBase.filter(d => d.funcionarioId == filtroFuncionarioAtual);
-        }
-        
-        const periodo = document.getElementById('filtroPeriodo')?.value;
-        if (periodo && periodo !== 'all') {
-            const diasAtras = parseInt(periodo);
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - diasAtras);
-            demandasBase = demandasBase.filter(d => new Date(d.dataCriacao) >= cutoffDate);
-        }
-        
-        const categoria = document.getElementById('filtroCategoria')?.value;
-        if (categoria && categoria !== 'todas') {
-            demandasBase = demandasBase.filter(d => d.categoria === categoria);
-        }
-        
-        const prioridade = document.getElementById('filtroPrioridade')?.value;
-        if (prioridade && prioridade !== 'todas') {
-            demandasBase = demandasBase.filter(d => d.prioridade === prioridade);
-        }
-        
-        return demandasBase;
-    }
-
-    // Função para atualizar o contador de demandas selecionadas
-    function updateSelectedCount() {
-        const countElement = document.getElementById('selectedOverdueCount');
-        if (countElement) {
-            countElement.textContent = `${selectedOverdueDemands.size} demandas selecionadas`;
-        }
-    }
-
-    // Abrir modal de reatribuição
-    function abrirModalReatribuicao(demandaId) {
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
-
-        document.getElementById('reassignForm').reset();
-        showModal('reassignModal', 'Reatribuir Demanda');
-    }
-
-    // Salvar reatribuição
-    async function salvarReatribuicao() {
-        const novaAtribuidoId = document.getElementById('reassignTo').value;
-        const motivo = document.getElementById('reassignReason').value;
-
-        if (!novaAtribuidoId || !motivo) {
-            showNotification('warning', 'Campos Obrigatórios', 'Por favor, selecione um funcionário e informe o motivo.');
-            return;
-        }
-
-        const demanda = todasDemandas.find(d => d.id === parseInt(document.getElementById('reassignDemandaId').value));
-        if (!demanda) return;
-
-        const novoAtribuido = usuarios.find(u => u.id == novaAtribuidoId);
-        if (!novoAtribuido) return;
-
-        // Adicionar o novo atribuído à lista
-        const novosAtribuidos = [...(demanda.atribuidos || []), novoAtribuido];
-        
-        const dadosAtualizados = {
-            atribuidos: novosAtribuidos,
-            status: 'atribuida_pendente_aceitacao'
-        };
-
-        const sucesso = await atualizarDemandaNoServidor(demanda.id, dadosAtualizados);
-
-        if (sucesso) {
-            await carregarDadosDoServidor();
-            renderizarTodasAsAbas();
-            
-            // Notificar o novo atribuído
-            addUserNotification('info', 'Nova Tarefa Atribuída', 
-                `A tarefa "${demanda.nomeDemanda}" foi atribuída a você.`, 
-                { tag: demanda.tag }
-            );
-            
-            // Enviar email para o novo atribuído
-            const assunto = encodeURIComponent(`Nova Tarefa: ${demanda.nomeDemanda}`);
-            const corpo = encodeURIComponent(`Prezado(a),\n\nUma tarefa foi reatribuída a você pelo Gestor:\n\n--- Detalhes da Tarefa ---\nNome: ${demanda.nomeDemanda}\nDescrição: ${demanda.descricao}\nCategoria: ${demanda.categoria}\nPrioridade: ${demanda.prioridade}\nLocal: ${demanda.local}\nData Limite: ${new Date(demanda.dataLimite).toLocaleDateString('pt-BR')}\nTAG: ${demanda.tag}\n\n--- Motivo da reatribuição ---\n${motivo}\n\n--- Novo Prazo ---\n${document.getElementById('reassignReason').value}\n\n--- Novo Prazo: ${document.getElementById('novaDataLimite').value}\n\nPor favor, revise e ajuste sua demanda conforme necessário.\n\nAtenciosamente,\nGestão`);
-            
-            window.open(`mailto:${novoAtribuido.email}?subject=${assunto}&body=${corpo}`, '_blank');
-            
-            showNotification('success', 'Tarefa Reatribuída', `A tarefa "${demanda.nomeDemanda}" foi reatribuída a você.`, { tag: demanda.tag });
-        }
-        
-        closeModal('reassignModal');
-    }
-
-    // Estender prazos
-    function extendSelectedDeadlines() {
-        if (selectedOverdueDemands.size === 0) {
-            showNotification('warning', 'Nenhuma Demanda Selecionada', 'Por favor, selecione pelo menos uma demanda para estender o prazo.');
-            return;
-        }
-        
-        // Para simplificar, vamos pegar a primeira demanda selecionada
-        const firstDemandaId = Array.from(selectedOverdueDemands)[0];
-        const primeiraDemanda = todasDemandas.find(d => d.id === firstDemandaId);
-        
-        if (primeiraDemanda) {
-            abrirModalExtensaoPrazo(firstDemandaId);
-        }
-    }
-
-    // Abrir modal de extensão de prazo
-    function abrirModalExtensaoPrazo(demandaId) {
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
-
-        document.getElementById('extendDeadlineForm').reset();
-        showModal('extendDeadlineModal', 'Estender Prazo da Demanda');
-    }
-
-    // Salvar extensão de prazo
-    async function salvarExtensaoPrazo() {
-        const motivo = document.getElementById('extendReason').value;
-        const novaDataLimite = document.getElementById('novaDataLimiteExt').value;
-
-        if (!motivo || !novaDataLimite) {
-            showNotification('warning', 'Campos Obrigatórios', 'Por favor, preencha todos os campos.');
-            return;
-        }
-
-        // Processar cada demanda selecionada
-        const promises = Array.from(selectedOverdueDemands).map(async (demandaId) => {
-            const demanda = todasDemandas.find(d => d.id === demandaId);
-            if (!demanda) return;
-            
-            const novaDataLimite = new Date(novaDataLimite);
-            const dadosAtualizados = {
-                dataLimite: novaDataLimite,
-                comentarioGestor: `Prazo da extensão: ${motivo}`
-            };
-            
-            const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
-            
-            if (sucesso) {
-                showNotification('success', 'Prazos Estendidos', `${selectedOverdueDemands.size} prazos foram estendidos com sucesso.`);
-                closeModal('extendDeadlineModal');
-                await carregarDadosDoServidor();
-                renderizarAtrasadas();
-                renderizarTodasAsAbas();
-            } else {
-                showNotification('error', 'Erro ao Estender Prazos', 'Não foi possível estender os prazos das demandas selecionadas.');
-            }
-        }
-    }
-
-    // Calcular desempenho de tempo
-    function calcularDesempenhoTempo(dataCriacao, dataConclusao, dataLimite) {
-        const conclusao = new Date(dataConclusao);
-        const limite = new Date(dataLimite);
-        
-        const diffMs = conclusao - limite;
-        const diffHoras = Math.abs(diffMs) / (1000 * 60 * 60 * 1000);
-        const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const diffHorasRestantes = Math.floor((diffMs % (1000 * 60)) / (1000 * 60));
-        const segundosAtraso = Math.floor((diffMs % (1000 * 60));
-        
-        let tempoTexto = '';
-        if (diffDias > 0) {
-            tempoTexto = `${diffDias}d ${diffHorasRestantes}h ${diffHorasRestantes}m ${segundosAtraso}s`;
-        } else {
-            tempoTexto = `${diffHorasRestantes}h ${segundosAtraso}s`;
-        }
-        
-        return tempoTexto;
-    }
-
-    // Alternar abas
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab').forEach(tab => { tab.classList.remove('active'); });
-        document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); });
-        
-        let targetTab = null;
-        document.querySelectorAll('.tab').forEach(tab => {
-            if (tab.onclick && tab.onclick && tab.onclick.toString().includes(tabName)) {
-                targetTab = tab;
-            } else if (tab.textContent.toLowerCase().includes('nova') && tabName === 'nova') {
-                targetTab = tab;
-            } else if (tab.textContent.toLowerCase().includes('dashboard')) {
-                targetTab = document.querySelectorAll('.tab')[0];
-            }
-        }
-        
-        if (targetTab) {
-            targetTab.classList.add('active');
-        }
-        
-        const contentElement = document.getElementById(tabName);
-        if (contentElement) {
-            contentElement.classList.add('active');
-        }
-        
-        const contentElement = document.getElementById(tabName);
-        if (contentElement) {
-            contentElement.classList.add('active');
-        }
-        
-        if (tabName === 'pendentes') {
-            setTimeout(() => { renderizarDemandas(); }, 100);
-        } else if (tabName === 'analise') {
-            setTimeout(() => { renderizarAnalise(); }, 100);
-        } else if (tabName === 'atrasadas') {
-            setTimeout(() => { renderizarAtrasadas(); }, 100);
-        } else if (tabName === 'aprovadas') {
-            setTimeout(() => { renderizarAprovadas(); }, 100);
-        } else if (tabName === 'notes') {
-            setTimeout(() => { renderizarAnotacoes(); }, 100);
-        } else if (tabName === 'mindmap') {
-            setTimeout(() => { atualizarMindmap(); }, 100);
-        }
-        
-        // Adicionar listeners para os novos filtros de mês e ano
-        document.addEventListener('DOMContentLoaded', () => {
-            // Adicionar listeners para os filtros de mês que já existem
-            ['pendentesMonthFilter', 'analiseMonthFilter', 'atrasadasMonthFilter', 'aprovadasMonthFilter', 'aprovadasMonthFilter', 'notesMonthFilter', 'rankingMonthFilter', 'notesMonthFilter'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', () => {
-                        const monthFilter = document.getElementById(id);
-                        if (monthFilter) {
-                            monthFilter.addEventListener('change', () => {
-                                filterPendentes();
-                            });
-                        }
-                    }
-                }
-            });
-        });
-        });
-        
-        // Adicionar listeners para os novos filtros de ano
-        ['pendentesYearFilter', 'analiseYearFilter', 'atrasadasYearFilter', 'aprovadasYearFilter', 'rankingYearFilter', 'notesYearFilter'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('change', () => {
-                    const yearFilter = document.getElementById(id);
-                    if (yearFilter) {
-                        const yearFilter.addEventListener('change', () => {
-                            const ano = yearFilter.value;
-                            const yearSelect = document.getElementById('rankingYearFilter');
-                            if (yearSelect) {
-                                // Preencher o ano atual
-                                anoSelect.innerHTML = '<option value="">Todos os anos</option>';
-                                for (let ano = 2023; ano <= anoAtual; ano++) {
-                                    const option = document.createElement('option');
-                                    option.value = ano;
-                                    option.textContent = ano;
-                                    yearSelect.add(option);
-                                }
-                            }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    }
-
-    // Carregar usuários no select
-    function carregarUsuariosNoSelect() {
-        const userSelect = document.getElementById('userSelect');
-        if (userSelect) {
-            usuarios.forEach(usuario => {
-                const option = new Option(usuario.nome, usuario.id);
-                userSelect.add(option);
-            });
-        }
-    }
-
-    // Configurar interface do usuário
-    function configurarInterfaceUsuario() {
-        const userBadge = document.getElementById('userBadge');
-        const userName = document.getElementById('userName');
-        
-        if (userBadge && userName) {
-            userName.textContent = usuarioLogado.nome;
-            
-            if (usuarioLogado.role === 'gestor') {
-                userBadge.classList.add('gestor');
-                userBadge.innerHTML = '<i class="fas fa-user-shield"></i> <span>' + usuarioLogado.nome + ' (Gestor)</span>';
-                document.getElementById('gestorTab').style.display = 'block';
-                document.getElementById('gestorTab').style.display = 'block';
-                document.getElementById('gestorTab2').style.display = 'block';
-                document.getElementById('gestorTab3').style.display = 'block';
-                document.getElementById('gestorTab4').style.display = 'block';
-                document.getElementById('gestorTab5').style.display = 'block';
-                document.getElementById('gestorTab2').style.display = 'block';
-                document.getElementById('exportRankingBtn').style.display = 'inline-block';
-            } else {
-                userBadge.innerHTML = '<i class="fas fa-user"></i> <span>' + usuarioLogado.nome + '</span>';
-            }
-        }
-    }
-
-    // Inicializar sistema principal
-    async function inicializarSistemaPrincipal() {
-        carregarFuncionariosNosSelect();
-        await carregarDadosDoServidor();
-        inicializarImportacaoJSON();
-        carregarAnotacoes();
-        carregarFeedbacks();
-        carregarMindmapLayout();
-        atualizarDashboard();
-        atualizarRanking();
-        inicializarGraficos();
-        
-        timerInterval = setInterval(atualizarTemposRestantes, 1000);
-        verificarLembretes();
-        
-        gerarNotificacoesAoLogar();
-        
-        carregarNotificacoesDoStorage();
-    }
-
-    // Função para exportar demandas concluídas
-    function exportCompleted() {
-        const demandasConcluidas = todasDemandas.filter(d => d.status === 'aprovada');
-        
-        if (demandasConcluidas.length === 0) {
-            showNotification('warning', 'Sem Dados', 'Não há demandas concluídas para exportar.');
-            return;
-        }
-        
-        exportarJSON(demandasConcluidas);
-    }
-
-    // Exportar ranking
-    function exportRanking() {
+    // Atualizar ranking
+    function atualizarRanking() {
         const ranking = {};
         
         usuarios.filter(u => u.role === 'gestor').forEach(func => {
             ranking[func.id] = {
                 nome: func.nome,
-                email: func.email,
-                nivel: func.nivel,
-                pontos: func.pontos,
-                conquistas: func.conquistas,
-                senha: func.senha,
-                role: func.role
+                concluidas: 0,
+                andamento: 0,
+                atrasadas: 0,
+                facil: 0,
+                medio: 0,
+                dificil: 0,
+                tempoMedioEntrega: 0,
+                totalDiasEntrega: 0,
+                entregasAntesPrazo: 0,
+                entregasAposPrazo: 0
             };
         });
         
         todasDemandas.forEach(demanda => {
             if (ranking[demanda.funcionarioId]) {
-                if (!ranking[demanda.funcionarioId]) {
+                if (demanda.status === 'aprovada') {
                     ranking[demanda.funcionarioId].concluidas++;
-                }
-            }
-            
-            // A verificação agora é segura, pois normalizarDadosDemanda garante que é um array
-            if (Array.isArray(demanda.atribuidos)) {
-                demanda.atribuidos.forEach(atribuido => {
-                    if (ranking[demanda.funcionarioId]) {
-                        ranking[demanda.funcionario].concluidas++;
-                    }
-                });
-            }
-        });
-        
-        const rankingArray = Object.values(ranking).sort((a, b) => b.concluidas - a.concluidas);
-        
-        const rankingList = document.getElementById('rankingList');
-        if (rankingList) {
-            rankingList.innerHTML = '';
-            
-            rankingArray.forEach((item, index) => {
-                const li = document.createElement('li');
-                li.className = 'ranking-item';
-                
-                const pos = document.createElement('div');
-                pos.className = 'ranking-position';
-                pos.textContent = index + 1;
-                
-                const info = document.createElement('div');
-                info.className = 'ranking-info';
-                
-                const pos = document.createElement('div');
-                pos.className = 'ranking-position';
-                pos.textContent = index + 1;
-                
-                const posElement = document.createElement('div');
-                pos.className = 'ranking-position';
-                pos.textContent = index + 1;
-                
-                const info = document.createElement('div');
-                info.className = 'ranking-info';
-                
-                const posElement = document.createElement('div');
-                pos.className = 'ranking-position';
-                pos.textContent = index + 1;
-                
-                const info = document.createElement('div');
-                info.className = 'ranking-info';
-                
-                posElement.appendChild(pos);
-                info.appendChild(pos);
-                info.appendChild(info);
-                info.appendChild(info);
-                
-                rankingList.appendChild(li);
-            });
-            
-            rankingList.appendChild(pos);
-        }
-    }
-
-    // Renderizar mapa mental
-    function atualizarMindmap() {
-        const mindmapArea = document.getElementById('mmapArea');
-        if (!mindmapArea) return;
-
-        mindmapArea.innerHTML = '';
-
-        const filter = document.getElementById('mindmapFilter')?.value || 'todos';
-        const sort = document.getElementById('mmapSort')?.value || 'prioridade';
-        
-        let demandas = getDemandasParaUsuarioLogado().filter(d => 
-            d.status !== 'aprovada' && d.status !== 'reprovada'
-        );
-
-        // Aplicar filtro
-        if (filter !== 'todos') {
-            if (filter === 'atrasado') {
-                demandas = demandas.filter(d => {
-                    const dataLimite = new Date(d.dataLimite);
-                    const hoje = new Date();
-                    return dataLimite < hoje;
-                });
-            } else if (filter === 'finalizado_pendente_aprovacao') {
-                demandas = demandas.filter(d => d.status === 'finalizado_pendente_aprovacao');
-            }
-        }
-
-        // Aplicar ordenação
-        demandas.sort((a, b) => {
-            if (sort === 'prioridade') {
-                const prioridadeOrder = { 'Importante': 3, 'Média': 2, 'Relevante': 1 };
-                return prioridadeOrder[b.prioridade] - prioridadeOrder[a.prioridade];
-            } else if (sort === 'dataLimite') {
-                return new Date(a.dataLimite) - new Date(b.dataLimite);
-            } else if (sort === 'categoria') {
-                return a.categoria.localeCompare(b.categoria);
-            } else {
-                return new Date(a.dataCriacao) - new Date(b.dataCriacao);
-            }
-            return 0;
-        });
-
-        // Adicionar nós para cada tipo de demanda
-        const tiposDemanda = [
-            { nome: 'Pendentes', filtro: d => d.status === 'pendente' || d.status === 'finalizado_pendente_aprovacao' || d.status === 'atribuida_pendente_aceitacao', filtro: d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao' },
-            { nome: 'Em Análise', filtro: d => d.status === 'finalizado_pendente_aprovacao', filtro: d => d.status === 'finalizado_pendente_aprovacao' },
-            { nome: 'Concluídas', filtro: d => d.status === 'aprovada', filtro: d => d.status === 'aprovada' }
-        ];
-        
-        // Adicionar nó central
-        const centralNode = document.createElement('div');
-        centralNode.className = 'mindmap-node';
-        centralNode.style.left = '50%';
-        centralNode.style.top = '25%';
-        centralNode.style.top = '25%';
-        centralNode.style.transform = 'translate(-50%, -50%)';
-        centralNode.innerHTML = '<i class="fas fa-user"></i> Minhas Demandas';
-        
-        mindmapArea.appendChild(centralNode);
-
-        // Adicionar nós para cada tipo de demanda
-        const tiposDemanda = [
-            { nome: 'Pendentes', filtro: d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao', filtro: d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao' },
-            { nome: 'Em Análise', filtro: d => d.status === 'finalizado_pendente_aprovacao', filtro: d => d.status === 'finalizado_pendente_aprovacao' },
-            { nome: 'Concluídas', filtro: d => d.status === 'aprovada', filtro: d => d.status === 'aprovada' }
-        ];
-
-        // Adicionar nó do tipo
-        tiposDemanda.forEach((tipo, index) => {
-            const demandasTipo = demandasTipo.filtro(d);
-            
-            // Adicionar nó do tipo
-            const tipoNode = document.createElement('div');
-            tipoNode.className = `mindmap-node ${tipo.cor}`;
-            
-            // Posicionar em círculo ao redor do nó central
-            const angleCircle = (index / tiposDemanda.length) * 2 * Math.PI);
-            const radius = 25; // Aumentado para melhor espaçamento
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 25 + radius * Math.sin(angleCircle);
-            
-            // Calcular posição em porcentagem
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 25 + radius * Math.sin(angleCircle);
-            
-            // Calcular posição em porcentagem
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 25 + radius * Math.sin(angleCircle);
-            
-            // Calcular posição em porcentagem
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 25 + radius * Math.sin(angleCircle);
-            
-            // Calcular posição em porcentagem
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 25 + radius * Math.sin(angleCircle);
-            
-            // Calcular ângulo de rotação
-            const rotation = Math.atan2(y - y, x);
-            const rotationDegrees = rotation * (180 / Math.PI);
-            
-            // Aplicar rotação
-            tipoNode.style.transform = `rotate(${rotation}deg)`;
-            
-            // Tornar arrastável
-            makeDraggable(tipoNode);
-            
-            mindmapArea.appendChild(tipoNode);
-        });
-        
-        // Adicionar nós para cada demanda do tipo
-        tiposDemanda.forEach((tipo, index) => {
-            const demandasTipo = demandasTipo.filtro(d);
-            
-            // Adicionar nó do tipo
-            const tipoNode = document.createElement('div');
-            tipoNode.className = `mindmap-node ${tipo.cor}`;
-            
-            // Posicionar em círculo ao redor do nó central
-            const angleCircle = (index / tiposDemanda.length) * 2 * Math.PI;
-            const radius = 20; // Aumentado para melhor espaçamento
-            const x = 50 + radius * Math.cos(angleCircle);
-            const y = 25 + radius * Math.sin(angleCircle);
-            
-            // Calcular posição em porcentagem
-            const rotation = Math.atan2(y - y) * (180 / Math.PI);
-            
-            // Aplicar rotação
-            tipoNode.style.transform = `rotate(${rotation}deg)`;
-            
-            // Tornar arrastável
-            makeDraggable(tipoNode);
-            
-            // Adicionar ID ao nó
-            tipoNode.id = `node-${tipo.id}`;
-            mindmapArea.appendChild(tipoNode);
-        });
-        
-        // Adicionar linhas de conexão
-        setTimeout(() => {
-            // Adicionar linhas de conexão após todos os nós serem criados
-            const mindmapArea = document.getElementById('mindmapArea');
-            const nodes = mindmapArea.querySelectorAll('.mindmap-node');
-            
-            for (let i = 0; i < nodes.length - 1; i++) {
-                const nodeA = nodes[i];
-                const nodeB = nodes[i + 1];
-                const angle = Math.atan2(nodeA.y - nodeB.y, nodeA.y);
-                const distance = Math.sqrt(Math.pow(nodeA.x - nodeB.x, 2) + Math.pow(nodeA.y - nodeB.y, 2));
-                
-                const line = document.createElement('div');
-                line.className = 'mindmap-connection';
-                
-                // Calcular comprimento e ângulo da linha
-                const length = distance;
-                const angle = Math.atan2(nodeB.y - nodeA.y, nodeB.y);
-                const x1 = nodeA.x;
-                const y1 = nodeA.y;
-                
-                // Calcular posição em porcentagem
-                const x2 = nodeA.x + (distance * Math.cos(angle));
-                const y2 = nodeA.y + (distance * Math.sin(angle));
-                
-                // Calcular ângulo da linha
-                const rotation = Math.atan2(angle * 180 / Math.PI);
-                
-                // Aplicar estilo à linha
-                line.style.width = `${length}px`;
-                line.style.height = '2px';
-                line.style.left = `${x1}px`;
-                line.style.top = `${y1}px`;
-                line.style.transform = `rotate(${rotation}deg)`;
-                line.style.transformOrigin = '0 0';
-                
-                // Adicionar à área
-                mindmapArea.appendChild(line);
-                mindmapArea.appendChild(line);
-            }
-        }, 100);
-    }
-
-    // Salvar layout do mapa mental
-    function saveMindmapLayout() {
-        // Implementar salvamento do layout do mapa mental
-        showNotification('info', 'Layout Salvo', 'O layout do mapa mental foi salvo.');
-    }
-
-    // Carregar layout do mapa mental
-    function carregarMindmapLayout() {
-        // Implementar carregamento do layout
-        const savedLayout = localStorage.getItem('mindmapLayout');
-        
-        if (savedLayout) {
-            try {
-                const layout = JSON.parse(savedLayout);
-                mindmapNodes = layout;
-                mindmapNodes = layout.nodes || [];
-                
-                // Reposicionar nós na posição salva
-                mindmapNodes.forEach(node => {
-                    const savedNode = layout.find(n => n => n.id === node.id);
-                    if (savedNode) {
-                        node.x = savedNode.x;
-                        node.y = savedNode.y;
-                        node.style.left = `${savedNode.x}px`;
-                        node.style.top = `${savedNode.y}px`;
-                    }
-                });
-            }
-            
-            mindmapNodes = layout;
-        } catch (e) {
-            console.error('Erro ao carregar layout do mapa mental:', e);
-            mindmapNodes = [];
-        }
-    }
-
-    // Renderizar todas as abas
-    function renderizarTodasAsAbas() {
-        renderizarDemandas();
-        renderizarAnalise();
-        renderizarAtrasadas();
-        renderizarAprovadas();
-        renderizarPendentesColaboradores();
-        renderizarCobranca();
-        renderizarAprovadas();
-        renderizarAnotacoes();
-        renderizarRanking();
-        renderizarCobranca();
-        renderizarExportar();
-    }
-
-    // Função para atualizar o contador de demandas selecionadas
-    function updateSelectedCount() {
-        const countElement = document.getElementById('selectedOverdueCount');
-        if (countElement) {
-            countElement.textContent = `${selectedOverdueDemands.size} demandas selecionadas`;
-        }
-    }
-
-    // Fechar modais
-    window.onclick = function(event) {
-        if (event.target.classList.contains('modal')) {
-            event.preventDefault();
-        }
-    }
-
-    // Fechar modais
-    document.addEventListener('DOMContentLoaded', () => {
-        const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                if (e.submitter.id === 'registerForm') {
-                    const nome = document.getElementById('registerName').value;
-                    const email = document.getElementById('registerEmail').value;
-                    const senha = document.getElementById('registerPassword').value;
-                    const role = document.getElementById('registerRole').value;
                     
-                    if (nome && email && senha && senha && role) {
-                        // Verificar se o email já está em uso
-                        const emailJaCadastrado = usuarios.find(u => u.email === email);
-                        if (emailJaCadastrado) {
-                            showNotification('warning', 'Email já cadastrado', 'Este email já está em uso.');
-                            return;
-                        }
-                    }
-                }
-                
-                form.reset();
-            } else if (e.submitter.id === 'forgotPasswordForm') {
-                    const email = document.getElementById('forgotEmail').value;
-                    const newPassword = document.getElementById('newPassword').value;
-                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    if (demanda.complexidade === 'Fácil') ranking[demanda.funcionarioId].facil++;
+                    else if (demanda.complexidade === 'Médio') ranking[demanda.funcionarioId].medio++;
+                    else if (demanda.complexidade === 'Difícil') ranking[demanda.funcionarioId].dificil++;
                     
-                    if (email && newPassword && newPassword && newPassword === confirmPassword) {
-                        // Verificar se a senha já existe
-                        const emailJaCadastrado = usuarios.find(u => u.email === email);
-                        if (emailJaCadastrado) {
-                            showNotification('warning', 'Email já cadastrado', 'Este email já está em uso.');
-                            return;
-                        }
-                    }
-                }
-                
-                form.reset();
-            }
-        });
-    }
-
-    // Inicializar importação JSON
-    function inicializarImportacaoJSON() {
-        const fileInput = document.getElementById('importFile');
-        if (fileInput) {
-            fileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file.type === 'application/json') {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        try {
-                            const importedData = JSON.parse(event.target.result);
-                            // Normaliza cada demanda importada ANTES de qualquer processamento
-                            const normalizedImportedData = importedData.map(demanda => normalizarDadosDemanda(demanda));
-                            
-                            // Adicionar IDs únicos para demandas que não existem
-                            normalizedImportedData.forEach(demanda => {
-                                if (!todasDemandas.find(d => d.id === demanda.id)) {
-                                    demanda.id = Date.now() + Math.random();
-                                }
-                            });
-                            
-                            // Atualizar IDs para evitar duplicatas
-                            const uniqueData = [...new Map(normalizedImportedData)];
-                            uniqueData.forEach(demanda => {
-                                uniqueData.set(demanda.id, demanda);
-                            });
-                            
-                            // Usar os dados normalizados
-                            todasDemandas = uniqueData;
-                        }
+                    if (demanda.dataCriacao && demanda.dataConclusao) {
+                        const diasEntrega = Math.ceil((new Date(demanda.dataConclusao) - new Date(demanda.dataCriacao)) / (1000 * 60 * 60 * 24));
+                        ranking[demanda.funcionarioId].totalDiasEntrega += diasEntrega;
                         
-                        if (uniqueData.length > 0) {
-                            console.log('Importação: IDs duplicados removidos');
-                        }
-                        
-                        todasDemandas = uniqueData;
-                    }
-                }
-            } catch (error) {
-                console.error('Erro ao importar o arquivo JSON:', error);
-                showNotification('error', 'Erro na Importação', `Falha ao ler o arquivo: ${error.message}`);
-            }
-        }
-        
-        reader.readAsText(file);
-    }
-
-    // Atualizar interface do usuário
-    function configurarInterfaceUsuario() {
-        const userBadge = document.getElementById('userBadge');
-        const userName = document.getElementById('userName');
-        
-        if (userBadge && userName) {
-            userName.textContent = usuarioLogado.nome;
-            
-            if (usuarioLogado.role === 'gestor') {
-                userBadge.classList.add('gestor');
-                userBadge.innerHTML = '<i class="fas fa-user-shield"></i> <span>' + usuarioLogado.nome + ' (Gestor)</span>';
-                document.getElementById('gestorTab').style.display = 'block';
-                document.getElementById('gestorTab').style.display = 'block';
-                document.getElementById('gestorTab2').style.display = 'block';
-                document.getElementById('gestorTab3').style.display = 'block';
-                document.getElementById('gestorTab4').style.display = 'block';
-                document.getElementById('gestorTab5').style.display = 'block';
-                document.getElementById('gestorTab2').style.display = 'block';
-                document.getElementById('gestorTab4').style.display = 'block';
-                document.getElementById('gestorTab5').style.display = 'block';
-                document.getElementById('gestorTab2').style.display = 'block';
-                document.getElementById('gestorTab3').style.display = 'block';
-                document.getElementById('gestorTab4').style.display = 'block';
-                document.getElementById('gestorTab5').style.display = 'block';
-                document.getElementById('gestorTab6').style.display = 'block';
-                document.getElementById('exportRankingBtn').style.display = 'inline-block';
-            } else {
-                userBadge.innerHTML = '<i class="fas fa-user"></i> <span>' + usuarioLogado.nome + '</span>';
-            }
-        }
-    }
-
-    // Inicializar sistema principal
-    function inicializarSistemaPrincipal() {
-        carregarFuncionariosNosSelect();
-        await carregarDadosDoServidor();
-        inicializarImportacaoJSON();
-        carregarAnotacoes();
-        carregarFeedbacks();
-        carregarMindmapLayout();
-        atualizarDashboard();
-        atualizarRanking();
-        inicializarGraficos();
-        
-        timerInterval = setInterval(atualizarTemposRestantes, 1000);
-        verificarLembretes();
-        
-        gerarNotificacoesAoLogar();
-        
-        carregarNotificacoesDoStorage();
-        
-        renderizarTodasAsAbas();
-        atualizarBadges();
-        atualizarDashboard();
-        atualizarRanking();
-        atualizarGraficos();
-        inicializarGraficos();
-        
-        carregarDadosDoServidor();
-        renderizarTodasAsAbas();
-        atualizarBadges();
-    }
-
-    // Funções para categoria
-    function toggleCategoryDropdown() {
-        const dropdown = document.getElementById('categoryDropdown');
-        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function filtrarCategorias() {
-        const input = document.getElementById('categoriaInput');
-        const dropdown = document.getElementById('categoryDropdown');
-        const options = dropdown.querySelectorAll('.category-option');
-        
-        options.forEach(option => {
-            const text = option.textContent.toLowerCase();
-            if (input.value.toLowerCase().includes(text)) {
-                option.style.display = 'block';
-            } else {
-                option.style.display = 'none';
-            }
-        });
-        
-        if (input.value) {
-            dropdown.style.display = 'block';
-        }
-    }
-
-    function selectCategory(category) {
-        document.getElementById('categoriaInput').value = category;
-        document.getElementById('categoryDropdown').style.display = 'none';
-        
-        if (category === 'Outros') {
-            document.getElementById('customCategoryInput').style.display = 'block';
-            document.getElementById('customCategory').value = '';
-        } else {
-            document.getElementById('customCategoryInput').style.display = 'none';
-        }
-    }
-
-    // Selecionar categoria
-    function selectCategory(category) {
-        document.getElementById('categoriaInput').value = category;
-        document.getElementById('categoryDropdown').style.display = 'none';
-    }
-
-    // Validar data limite
-    function validateDeadline() {
-        const deadlineInput = document.getElementById('dataLimiteInput');
-        if (!deadlineInput.value) return;
-        
-        const deadline = new Date(deadlineInput.value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (deadline < today) {
-            showNotification('warning', 'Data Inválida', 'A data limite não pode ser anterior a hoje.');
-            deadlineInput.value = '';
-        }
-    }
-
-    // Alternar campos de rotina
-    function toggleRoutineFields() {
-        const rotinaCheckbox = document.getElementById('rotinaCheckbox');
-        const diasSemanaGroup = document.getElementById('diasSemanaGroup');
-        
-        if (rotinaCheckbox.checked) {
-            diasSemanaGroup.style.display = 'block';
-        } else {
-            diasSemanaGroup.style.display = 'none';
-        }
-    }
-
-    // Alternar campos de local
-    function carregarFiltros() {
-        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'colabLocalFilter', 'cobrancaFuncionario', 'feedbackFuncFilter', 'reassignTo', 'noteAssignTo'];
-        
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (select) {
-                select.innerHTML = '';
-                if (selectId === 'cobrancaFuncionario') {
-                    select.innerHTML = '<option value="todos">Todos os Funcionários com Demandas Atrasadas</option>';
-                } else if (selectId === 'colabLocalFilter') {
-                    select.innerHTML = '<option value="todos">Todos os Locais</option>';
-                    const optionLundin = new Option('Lundin');
-                    select.add(optionLundin);
-                    select.add(optionRD);
-                    select.add(optionRD);
-                    select.add(optionRD);
-                } else if (selectId === 'cobrancaFuncionario') {
-                    select.innerHTML = '<option value="todos">Todos os Funcionários com Demandas Atrasadas</option>';
-                } else if (selectId === 'feedbackFuncFilter' || selectId === 'noteAssignTo') {
-                    select.innerHTML = '<option value="">Não atribuir</option>';
-                    usuarios.filter(u => {
-                        const option = new Option(u.nome, u.id);
-                        select.add(option);
-                    });
-                }
-            }
-            
-            selects.forEach(select => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    select.innerHTML = '<option value="todos">Todos</option>';
-                }
-            });
-        }
-        
-        selects.forEach(select => {
-            const select = document.getElementById(selectId);
-            if (select) {
-                select.innerHTML = '<option value="todos">Todos</option>';
-            }
-        });
-    }
-
-    // Obter dados do servidor
-    async function carregarDadosDoServidor() {
-        try {
-            const response = await fetch(`${SERVER_URL}/api/demandas`);
-            if (response.ok) {
-                const demandasDoServidor = await response.json();
-                
-                // Normaliza os dados recebidos
-                const demandasNormalizadas = demandasDoServidor.map(demanda => normalizarDadosDemanda(demanda));
-                
-                demandasNormalizadas.forEach(demanda => {
-                    if (!todasDemandas.find(d => d.id === demanda.id)) {
-                        todasDemandas.push(demanda);
-                    }
-                });
-                
-                todasDemandas = demandasNormalizadas;
-            } catch (error) {
-                console.error('Erro de conexão com o servidor:', error);
-                showNotification('error', 'Erro de Conexão', 'Não foi possível conectar ao servidor.');
-            }
-        }
-        
-        renderizarTodasAsAbas();
-        renderizarCobranca();
-        atualizarBadges();
-        atualizarDashboard();
-        atualizarRanking();
-        atualizarGraficos();
-        atualizarBadges();
-    }
-
-    // Renderizar todas as abas
-    function renderizarTodasAsAbas() {
-        renderizarDemandas();
-        renderizarAnalise();
-        renderizarAtrasadas();
-        renderizarAprovadas();
-        renderizarPendentesColaboradores();
-        renderizarCobranca();
-        renderizarAprovadas();
-        renderizarRanking();
-        renderizarExportar();
-    }
-
-    // Função para obter demandas por ID
-    function obterDemandaPorId(id) {
-        return todasDemandas.find(d => d.id === id);
-    }
-
-    // Alternar status
-    function alternarStatus(demandaId, novoStatus) {
-        const demanda = obterDemandaId(demandaId);
-        if (!demanda) return;
-
-        const dadosAtualizados = {
-            status: novoStatus
-        };
-        
-        const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
-        
-        if (sucesso) {
-            await carregarDadosDoServidor();
-            renderizarTodasAsAbas();
-            
-            // Notificar o usuário sobre a mudança de status
-            if (novoStatus === 'aprovada') {
-                const funcionario = usuarios.find(u => u.id === demanda.funcionarioId);
-                if (funcionario) {
-                    addUserNotification('success', 'Status Alterado', `Status da sua demanda "${demanda.nomeDemanda}" foi alterado para "Aprovada"`);
-                }
-            }
-            
-            // Notificar o gestor sobre a mudança
-            if (novoStatus === 'reprovada') {
-                const gestor = usuarios.find(u => u.role === 'gestor');
-                if (gestor) {
-                    const assunto = encodeURIComponent(`Status Alteração de Status - ${demanda.nomeDemanda}`);
-                    const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeDemanda} - Status: ${novoStatus}\n\n--- Motivo da Alteração ---\n${motivoReprovacao}\n--- Novo Prazo ---\n--- Novo Prazo ---\n${document.getElementById('novaDataLimiteExt').value || ''}</div>
-                `
-            }
-            
-            // Notificar o gestor sobre a mudança
-            addUserNotification('warning', 'Status da Demanda', `Status da sua demanda "${demanda.nomeDemanda}" foi alterada para "${novoStatus}".`);
-        }
-        
-        closeModal('resolucaoModal');
-    }
-
-    // Aprovar demanda (sem necessidade de senha)
-    async function aprovarDemanda(id, nomeFuncionario) {
-        if (!confirm('Tem certeza que deseja aprovar esta demanda?')) return;
-        
-        const sucesso = await atualizarDemandaNoServidor(id, { status: 'aprovada' });
-        
-        await carregarDadosDoServidor();
-        
-        const funcionario = usuarios.find(u => u.id === id);
-        if (funcionario) {
-            // Notificar o gestor
-            const gestor = usuarios.find(u => u.role === 'gestor');
-            if (gestor) {
-                const assunto = encodeURIComponent(`Status da Demanda: ${demanda.nomeDemanda}`);
-                const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeDemanda} - Status: ${status}\n--- Detalhes da Demanda ---\nTAG: ${demanda.tag}\n--- Comentários do Funcionário ---\n${demanda.comentarios || ''}</div>\n\n--- Novo Prazo ---\n${document.getElementById('novaDataLimiteExt').value || ''}</div>\n\nPor favor, revise e ajuste sua demanda conforme necessário.\n\nAtenciosamente,\nGestão,\nGestão`);
-                    
-                    window.open(`mailto:${gestor.email}?subject=${assunto}&body=${corpo}`, '_blank');
-                    
-                    addUserNotification('success', 'Status da Demanda', `Sua demanda "${demanda.nomeDemanda}" foi alterada para "Aprovada"`);
-            }
-        }
-        
-        closeModal('resolucaoModal');
-    }
-
-    // Atualizar interface automaticamente
-    async function atualizarInterface() {
-        atualizarDashboard();
-        atualizarRanking();
-        atualizarBadges();
-        atualizarGraficos();
-    }
-
-    // Atualizar interface automaticamente
-    async function atualizarAutomaticamente() {
-        await atualizarInterface();
-    }
-
-    // Função para exportar concluídas
-    function exportCompleted() {
-        const demandasConcluidas = todasDemandas.filter(d => d.status === 'aprovada');
-        
-        if (demandasConcluidas.length === 0) {
-            showNotification('warning', 'Sem dados', 'Nenhuma demanda concluída para exportar.');
-            return;
-        }
-        
-        exportJSON(demandasConcluidas);
-        showNotification('success', 'Exportação Concluída', 'Os dados foram exportados em formato JSON.');
-    }
-
-    // Salvar layout no storage
-    function salvarLayoutNoStorage() {
-        if (!usuarioLogado) return;
-        
-        // Salvar preferências do usuário
-        const preferencias = {
-            dashboard: {
-                filtroFuncionario: 'todos',
-                periodo: '7',
-                categoria: 'todas',
-                prioridade: 'todas',
-                local: 'todos'
-            },
-            ranking: {
-                dashboard: 'todos',
-                exportar: false
-            },
-            notes: [],
-            notifications: []
-        };
-        
-        localStorage.setItem('preferences', JSON.stringify(preferencias));
-    }
-
-    // Obter preferências do storage
-    function getPreferences() {
-        const preferencias = localStorage.getItem('preferences');
-        return preferencias || {
-            dashboard: { dashboard: 'todos', periodo: '7', categoria: 'todas', prioridade: 'todas', local: 'todos' },
-            ranking: { dashboard: 'todos', exportar: false },
-            notes: [],
-            notifications: []
-        };
-        
-        return preferencias;
-    }
-
-    // Salvar preferências no storage
-    function salvarPreferencias() {
-        if (!usuarioLogado) return;
-        salvarLayoutNoStorage();
-    }
-
-    // Obter preferências do storage
-    function getPreferences() {
-        return getPreferences();
-    }
-
-    // Atualizar preferências no storage
-    function salvarPreferences() {
-        salvarPreferences();
-    }
-
-    // Obter preferências do storage
-    function getPreferences() {
-        const preferencias = getPreferences();
-        return preferencias.dashboard || {
-            dashboard: { dashboard: 'todos', periodo: '7', categoria: 'todas', prioridade: 'todas', local: 'todos', exportar: false }
-        };
-        
-        return preferencias.dashboard;
-    }
-
-    // Atualizar preferências no storage
-    function atualizarPreferencias() {
-        const preferencias = getPreferences();
-        
-        if (!usuarioLogado) return;
-        }
-    
-    // Aplicar preferências
-    function aplicarPreferencias() {
-        const preferencias = getPreferences();
-        
-        // Aplicar preferências ao usuário logado
-        if (usuarioLogado) {
-            Object.assign(usuarioLogado, preferencias);
-        }
-    }
-
-    // Limpar preferências do storage
-    function limparPreferencias() {
-        localStorage.removeItem('preferences');
-        salvarPreferences();
-    }
-
-    // Salvar layout do mapa mental
-    function carregarMindmapLayout() {
-        // Implementar carregamento do layout salvo
-        const savedLayout = localStorage.getItem('mindmapLayout');
-        
-        if (savedLayout) {
-            try {
-                const layout = JSON.parse(savedLayout);
-                mindmapNodes = layout.nodes || [];
-                
-                // Reposicionar nós salvos
-                layout.nodes.forEach(node => {
-                    const savedNode = layout.nodes.find(n => n => n.id === node.id);
-                    if (savedNode) {
-                        const pos = savedNode.position;
-                        const pos = savedNode.position;
-                        node.style.left = `${pos.x}px`;
-                        node.style.top = `${pos.y}px`;
-                    }
-                });
-                
-                mindmapNodes = layout.nodes;
-            }
-            
-            mindmapNodes = layout.nodes;
-        }
-        
-        }
-    }
-
-    // Carregar notas do storage
-    function carregarAnotacoes() {
-        const storageKey = `notes_${usuarioLogado?.id || 'guest'}`;
-        const saved = localStorage.getItem(storageKey);
-        
-        if (saved) {
-            try {
-                notes = JSON.parse(saved);
-            } catch (e) {
-                console.error('Erro ao carregar anotações:', e);
-                notes = [];
-            }
-        } else {
-            notes = [];
-        }
-        
-        renderizarAnotacoes();
-    }
-
-    // Salvar notas no storage
-    function salvarAnotacoes() {
-        if (!usuarioLogado) return;
-        
-        const storageKey = `notes_${usuarioLogado?.id || 'guest'}`;
-        localStorage.setItem(storageKey, JSON.stringify(notes));
-    }
-
-    // Salvar notas no storage
-    function salvarAnotacoes() {
-        salvarAnotacoes();
-    }
-
-    // Renderizar anotações
-    function renderizarAnotacoes() {
-        const notesContainer = document.getElementById('notesContainer');
-        if (notesContainer) {
-            if (notes.length === 0) {
-                notesContainer.innerHTML = '<p class="empty-state"><i class="fas fa-sticky-note"></i> Nenhuma anotação encontrada. Crie sua primeira anotação!</p>';
-            } else {
-                notes.forEach(note => {
-                    const noteElement = document.createElement('div');
-                    noteElement.className = 'note-item';
-                    noteElement.style.borderLeft = `4px solid ${note.color || '#3498db'}`;
-                    
-                    noteElement.innerHTML = `
-                        <div class="note-header">
-                            <h4>${note.title}</h4>
-                            <div class="note-date">${formatDate(note.date)}</div>
-                            ${note.assignedTo ? `<small><strong>Atribuída a:</strong> ${usuarios.find(u => u.id === note.assignedTo ? u.nome : 'Não atribuída'}</small></small>`
-                        </div>
-                        <div class="note-actions">
-                            <button class="secondary" onclick="editNote(${note.id})" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="danger" onclick="deleteNote(${note.id})" title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    `;
-            
-            notesContainer.appendChild(noteElement);
-        }
-    }
-
-    // Editar anotação
-    function editNote(id) {
-        const note = notes.find(n => n.id === id);
-        if (!note) return;
-        
-        document.getElementById('noteModalTitle').textContent = 'Editar Anotação';
-        document.getElementById('noteTitle').value = note.title;
-        document.getElementById('noteContent').value = note.content;
-        document.getElementById('noteColor').value = note.color || '#3498db';
-        document.getElementById('noteAssignTo').value = note.assignedTo || '';
-        
-        // Modificar o formulário para atualizar em vez de criar
-        const form = document.getElementById('noteForm');
-        form.onsubmit = function(e) {
-            e.preventDefault();
-            
-            // Modificar o formulário para atualizar em vez de criar
-            form.onsubmit = function(e) {
-                e.preventDefault();
-                salvarAnotacao();
-            };
-        };
-        
-        form.onsubmit = function(e) {
-            e.preventDefault();
-            salvarAnotacao();
-        };
-        
-        form.onsubmit = function(e) {
-            e.preventDefault();
-            salvarAnotacao();
-        };
-    }
-
-    // Alternar abas
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab').forEach(tab => { tab.classList.remove('active'); });
-        document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); });
-        
-        let targetTab = null;
-        document.querySelectorAll('.tab').forEach(tab => {
-            if (tab.onclick && tab.onclick && tab.onclick && tab.onclick.toString().includes(tabName)) {
-                targetTab = tab;
-            }
-        });
-        
-        const contentElement = document.getElementById(tabName);
-        if (contentElement) {
-            contentElement.classList.add('active');
-        }
-        
-        const contentElement = document.getElementById(tabName);
-        if (contentElement) {
-            contentElement.classList.add('active');
-        }
-        
-        if (targetTab) {
-            targetTab.classList.add('active');
-        }
-        
-        // Adicionar listeners para os novos filtros de mês e ano
-        document.addEventListener('DOMContentLoaded', () => {
-            // Adicionar listeners para os filtros de mês e ano que já existem
-            ['pendentesMonthFilter', 'analiseMonthFilter', 'atrasadasMonthFilter', 'aprovadasMonthFilter', 'aprovadasMonthFilter', 'aprovadasMonthFilter', 'notesMonthFilter', 'notesMonthFilter'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', () => {
-                        const monthFilter = document.getElementById(id);
-                        if (monthFilter) {
-                            monthFilter.addEventListener('change', () => {
-                                filterPendentes();
-                            });
-                        }
-                    }
-                }
-            });
-        });
-    }
-
-    // Inicializar filtros de mês e ano
-    function inicializarFiltrosData() {
-        // Adicionar listeners para os filtros de mês e ano que já existem
-        ['pendentesMonthFilter', 'analiseMonthFilter', 'atrasadasMonthFilter', 'aprovadasMonthFilter', 'notesMonthFilter'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('change', () => {
-                    const monthFilter = document.getElementById(id);
-                    if (monthFilter) {
-                        monthFilter.addEventListener('change', () => {
-                            filterPendentes();
-                        });
-                    }
-                });
-            });
-        });
-        
-        // Preencher filtros de ano
-        ['pendentesYearFilter', 'analiseYearFilter', 'aprovadasYearFilter', 'aprovadasYearFilter'].forEach(id => {
-            const yearFilter = document.getElementById(id);
-            if (yearFilter) {
-                const yearFilter.addEventListener('change', () => {
-                    const yearFilter.addEventListener('change', () => {
-                        const anoFilter = yearFilter.value;
-                        if (yearFilter) {
-                            const yearSelect = document.getElementById('aprovadasYearFilter');
-                            yearSelect.innerHTML = '<option value="">Todos os anos</option>';
-                            for (let ano = 2023; ano <= anoAtual + 1; ano++) {
-                                const option = document.createElement('option');
-                                option.value = ano;
-                                option.textContent = ano;
-                                yearSelect.add(option);
+                        if (demanda.dataLimite) {
+                            if (new Date(demanda.dataConclusao) <= new Date(demanda.dataLimite)) {
+                                ranking[demanda.funcionarioId].entregasAntesPrazo++;
+                            } else {
+                                ranking[demanda.funcionarioId].entregasAposPrazo++;
                             }
                         }
-                    });
-                }
-            });
-        });
-    }
-
-    // Inicializar filtros de mês e ano
-    function inicializarFiltrosData() {
-        // Preencher os filtros de mês e ano
-        const selects = [
-            { month: ['pendentesMonthFilter', 'analiseMonthFilter', 'atrasadasMonthFilter', 'aprovadasMonthFilter', 'notesMonthFilter', 'notesMonthFilter'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', () => {
-                    const monthFilter = document.getElementById(id);
-                    if (monthFilter) {
-                        monthFilter.addEventListener('change', () => {
-                            filterPendentes();
-                        });
-                    });
-                });
-            });
-        });
-        
-        // Preencher os filtros de ano
-        ['pendentesYearFilter', 'analiseYearFilter', 'aprovadasYearFilter', 'aprovadasYearFilter'].forEach(id => {
-            const yearSelect = document.getElementById(id);
-            if (yearSelect) {
-                const yearSelect = document.getElementById('aprovadasYearFilter');
-                yearSelect.innerHTML = '<option value="">Todos os anos</option>';
-                for (let ano = 2023; ano <= anoAtual + 1; ano++) {
-                    const option = document.createElement('option');
-                    option.value = ano;
-                    option.textContent = ano;
-                    yearSelect.add(option);
-                }
-            });
-        });
-    }
-
-    // Função para atualizar o contador de demandas selecionadas
-    function updateSelectedCount() {
-        const countElement = document.getElementById('selectedOverdueCount');
-        if (countElement) {
-            countElement.textContent = `${selectedOverdueDemands.size} demandas selecionadas`;
-        }
-    }
-
-    // Alternar status
-    function alternarStatus(demandaId, novoStatus) {
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
-
-        const dadosAtualizados = {
-            status: novoStatus,
-            dataConclusao: new Date().toISOString()
-        };
-        
-        const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
-        
-        if (sucesso) {
-            await carregarDadosDoServidor();
-            renderizarTodasAsAbas();
-            
-            // Notificar o usuário sobre a mudança de status
-            if (novoStatus === 'aprovada') {
-                const funcionario = usuarios.find(u => u.id === demanda.funcionarioId);
-                if (funcionario) {
-                    addUserNotification('success', 'Status da Demanda', `Sua demanda "${demanda.nomeDemanda}" foi alterada para "Aprovada"`);
-                }
-            }
-            
-            // Notificar o gestor sobre a mudança
-            const gestor = usuarios.find(u => u.role === 'gestor');
-            if (gestor) {
-                const assunto = encodeURIComponent(`Status da Demanda: ${demanda.nomeDemanda}`);
-                const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeDemanda} - Status: ${novoStatus}\n--- Motivo da Reprovação ---\n--- Novo Prazo ---\n${document.getElementById('motivoReprovacao').value || ''}</div>
-                
-                window.open(`mailto:${gestor.email}?subject=${assunto}&body=${corpo}`, '_blank');
-            }
-            
-            showNotification('success', 'Status da Demanda', `Sua demanda "${demanda.nomeDemanda}" foi alterada para "Aprovada"`);
-        }
-    }
-
-    // Alternar status
-    function alternarStatus(demandaId, novoStatus) {
-        const demanda = todasDemandas.find(d => d.id === demandaId);
-        if (!demanda) return;
-
-        const dadosAtualizados = {
-            status: novoStatus,
-            dataConclusao: new Date().toISOString()
-        };
-        
-        const sucesso = await atualizarDemandaNoServidor(demandaId, dadosAtualizados);
-        
-        if (sucesso) {
-            await carregarDadosDoServidor();
-            renderizarTodasAsAbas();
-            
-            // Notificar o usuário sobre a mudança de status
-            if (novoStatus === 'aprovada') {
-                const funcionario = usuarios.find(u => u.id === demanda.funcionarioId);
-                if (funcionario) {
-                    addUserNotification('success', 'Status da Demanda', `Sua demanda "${demanda.nomeDemanda}" foi alterada para "Aprovada"`);
-                }
-            }
-            
-            // Notificar o gestor sobre a mudança de status
-            const gestor = usuarios.find(u => u.role === 'gestor');
-            if (gestor) {
-                const assunto = encodeURIComponent(`Status da Demanda: ${demanda.nomeDemanda}`);
-                const corpo = encodeURIComponent(`Prezado(a) ${demanda.nomeDemanda} - Status: ${novoStatus}\n--- Motivo da Reprovação ---\n--- Novo Prazo ---\n${document.getElementById('motivoReprovacao').value || ''}</div>
-                
-                window.open(`mailto:${gestor.email}?subject=${assunto}&body=${corpo}`, '_blank');
-            }
-        }
-        
-        closeModal('resolucaoModal');
-    }
-
-    // Salvar reprovação (sem necessidade de senha)
-    async function salvarReprovacao() {
-        if (!demandaReprovacaoAtual) return;
-
-        const dadosAtualizados = {
-            comentarioGestor: document.getElementById('motivoReprovacao').value || '';
-            dadosAtualizados.status = 'reprovada';
-            
-            const sucesso = await atualizarDemandaNoServidor(demandaReprovacaoAtual.id, dadosAtualizados);
-            
-            if (sucesso) {
-                await carregarDadosDoServidor();
-                renderizarTodasAsAbas();
-                
-                showNotification('success', 'Demanda Reprovada', `Sua demanda "${demandaReprovacaoAtual.nomeDemanda}" foi reprovada com sucesso!`);
-                closeModal('reprovacaoModal');
-            } else {
-                showNotification('error', 'Erro ao Reprovar', 'Não foi possível salvar a reprovação.');
-            }
-        }
-        
-        closeModal('reprovacaoModal');
-    }
-
-    // Obter tags de mês e ano para filtros
-    function inicializarFiltrosData() {
-        // Preencher os filtros de mês e ano que já existem
-        ['pendentesMonthFilter', 'analiseMonthFilter', 'atrasadasMonthFilter', 'aprovadasMonthFilter', 'aprovadasMonthFilter', 'aprovadasMonthFilter', 'aprovadasMonthFilter', 'notesMonthFilter', 'notesMonthFilter', 'notesMonthFilter', 'rankingYearFilter', 'rankingYearFilter', 'notesYearFilter'].forEach(id => {
-            const yearSelect = document.getElementById(id);
-            if (yearSelect) {
-                yearSelect.innerHTML = '<option value="">Todos os anos</option>';
-                for (let ano = 2023; ano <= anoAtual + 1; ano++) {
-                    const option = document.createElement('option');
-                    option.value = ano;
-                    option.textContent = ano;
-                }
-            }
-        });
-        
-        selects.forEach(select => {
-            const select = document.getElementById(selectId);
-            if (select) {
-                select.innerHTML = '<option value="">Todos os Funcionários</option>';
-            }
-        });
-    }
-
-    // Obter tags
-    function obterTags() {
-        return [...new Set([...new Set()];
-    }
-
-    // Adicionar tag à demanda
-    function adicionarTag(demanda) {
-        if (!demanda.tags || !demanda.tags) {
-            demanda.tags.add(demanda.id);
-        }
-    }
-
-    // Obter tags da demanda
-    function obterTags(demanda) {
-        return [...demanda.tags];
-    }
-
-    // Obter tags da demanda
-    function obterTags(demanda) {
-        return [...new Set(demanda.tags)];
-    }
-
-    // Remover tag da demanda
-    function removerTag(demandaId, tag) {
-        if (demanda && Array.isArray(demanda.tags)) {
-            const index = demanda.tags.findIndex(t => t.id === tag);
-            if (index > -1) {
-                demanda.tags.splice(index, 1);
-            }
-        }
-        
-        if (demanda.tags.length === 0) {
-            return [];
-        }
-    }
-
-    // Limpar tags
-    function limparTags() {
-        if (!demanda) return;
-        }
-    
-    // Limpar tags
-    function limparTags() {
-        if (!demanda) return;
-    }
-
-    // Adicionar tags à demanda
-    function adicionarTag(demanda, tag) {
-        if (!demanda.tags) {
-            demanda.tags = [tag];
-        }
-    }
-
-    // Verificar tags
-    function temTag(demanda, tag) {
-        return demanda.tags && demanda.tags.includes(tag);
-    }
-
-    // Obter tags da demanda
-    function obterTags(demanda) {
-        return demanda.tags || [];
-    }
-
-    // Obter tags da demanda
-    function obterTags(demanda) {
-        return demanda.tags || [];
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do storage
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do storage
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Adicionar tags ao criar demanda
-    function adicionarTags(demanda) {
-        if (!demanda.tags) {
-            demanda.tags = [tag];
-        }
-        
-        adicionarTag(demanda, tag);
-    }
-
-    // Obter tags da demanda
-    function obterTags(demanda) {
-        if (demanda.tags && demanda.tags.length > 0) {
-            demanda.tags = [...demanda.tags];
-        }
-        
-        return demanda.tags;
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Função para obter tags
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Salvar tags do storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDaDemanda(demanda) {
-        if (!demanda.tags) {
-            return demanda.tags || [];
-        }
-        
-        return demanda.tags;
-    }
-
-    // Atualizar o contador de tags
-    function atualizarTags() {
-        if (!usuarioLogado) return;
-    }
-
-    // Atualizar o contador de tags
-    function atualizarTags() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        if (!demanda) return;
-    }
-
-    // Remover tag da demanda
-    function removerTag(demandaId) {
-        if (!demanda) return;
-        }
-        
-        const index = demanda.tags.findIndex(t => t.id === demanda.id);
-        if (index > -1) {
-            demanda.tags.splice(index, 1);
-        }
-        
-        demanda.tags = demanda.tags.filter(t => t.id !== null);
-        
-        return demanda.tags;
-    }
-
-    // Obter tags do storage
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        if (!demanda) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoArray() {
-        if (!usuarioLogado) return [];
-    }
-
-    // Função para exportar tags
-    function exportarTags() {
-        const tags = obterTagsDoStorage();
-        
-        if (tags.length === 0) {
-            showNotification('warning', 'Nenhuma tag para exportar', 'Nenhance as tags para exportar.');
-            return;
-        }
-        
-        const tags = [];
-        tags.forEach(tag => tags.push(tag));
-        
-        return tags;
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        if (!demanda) return;
-    }
-
-    // Função para obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        if (!demanda) return [];
-        
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Função para exportar tags
-    function exportarTags() {
-        const tags = obterTagsDoStorage();
-        
-        if (tags.length === 0) {
-            showNotification('warning', 'Nenhance como tags para exportar', 'Nenhance como tags para exportar.');
-            return;
-        }
-        
-        return tags;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        return obterTagsDemanda(demanda, tags) || [];
-    }
-
-    // Função para atualizar tags no storage
-    function atualizarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Função para obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoArray(array) {
-        if (!Array.isArray(array)) {
-            return array;
-        }
-        
-        return array;
-    }
-
-    // Obter tags do array
-    function obterTagsDoArray() {
-        const tags = [];
-        
-        if (Array.isArray(demanda)) {
-            tags.push(demanda.tags);
-        }
-        
-        return tags;
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do storage
-    function obterTagsStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        return obterTagsDoStorage();
-    }
-
-    // Obter tags do array
-    function obterTagsArray() {
-        if (Array.isArray(demanda)) {
-            return demanda.tags;
-        } else {
-            return obterTagsDoStorage();
-        }
-    }
-
-    // Obter tags do array
-    function obterTagsArray() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do storage
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        return obterTagsDemanda(demanda);
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        return obterTagsDemanda(demanda);
-    }
-
-    // Obter tags do array
-    function obterTagsArray() {
-        if (!Array.isArray(demanda)) {
-            return demanda.forEach(demanda.tags || []);
-        }
-        
-        return obterTagsArray();
-    }
-
-    // Obter tags do array
-    function obterTagsDemanda(demanda) {
-        if (demanda) {
-            return obterTagsDemanda(demanda);
-        }
-        
-        const tags = obterTagsArray();
-        return tags;
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do storage
-    function salvarTagsNoStorage() {
-        const tags = obterTagsDoStorage();
-        
-        tags = obterTagsArray();
-        
-        tags.forEach(tag => {
-            obterTagsArray(tag);
-        });
-        
-        tags.forEach(tag => {
-            obterTagsArray([tag]);
-    }
-
-    // Obter tags da demanda
-    function obterTagsDoStorage() {
-        const tags = obterTagsArray();
-        
-        tags.forEach(tag => {
-            obterTagsDemanda(demanda));
-        });
-        
-        tags.push(...tags);
-    }
-
-    // Obter tags do storage
-    function obterTagsStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Salvar tags no storage
-    function salvarTagsNoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do storage
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        if (!demanda) {
-            return obterTagsDemanda(demanda.tags);
-        }
-        
-        tags.push(demanda.tags);
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        return obterTagsDemanda(demanda);
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDemanda(demanda) {
-        if (!demanda) {
-            return obterTagsDemanda(demanda.tags);
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDemanda(demanda) {
-        if (!demanda) {
-            return obterTagsDemanda(demanda);
-        }
-        
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags da demanda
-    function obterTagsDoStorage() {
-        if (usuarioLogado) {
-            return obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (!usuarioLogado) return;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obterTagsDoStorage() {
-        const tags = obterTagsDoStorage();
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags.forEach(tag => {
-            tags.push(tag);
-        });
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tags do array
-    function obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-        
-        tags.forEach(tag => {
-            tags.push(tag);
-        });
-    }
-
-    // Obter tagsDoStorage() {
-        tags.push(tag);
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags.forEach(tag => {
-            tags.push(tag);
-        });
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obterTagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-            tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-            if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-            tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        tags = obter tagsDoStorage();
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        return tags;
-    }
-
-    // Obter tagsDoStorage() {
-        if (usuarioLogado) {
-            tags = obter tagsDoStorage();
-        }
-        
-        return tags
+                    }
+                } else if (demanda.status === 'pendente' || deman
+... (continua)
