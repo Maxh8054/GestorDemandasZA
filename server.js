@@ -1,12 +1,19 @@
-// server.js - Versão Completa com Suporte às Novas Funcionalidades
+// server.js - Versão Completa com Todas as Funcionalidades
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
+const http = require('http');
+const socketIo = require('socket.io');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-aqui';
 
 // Configuração CORS para Render e desenvolvimento
 app.use(cors({
@@ -16,6 +23,14 @@ app.use(cors({
     credentials: true
 }));
 
+// Rate limiting para proteção contra ataques
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // limite de 100 requisições por IP
+    message: { error: 'Muitas requisições, tente novamente mais tarde' }
+});
+app.use(limiter);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('.'));
 
@@ -24,6 +39,49 @@ app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] ${req.method} ${req.url}`);
     next();
+});
+
+// Criar servidor HTTP para WebSocket
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: {
+        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+        methods: ["GET", "POST"]
+    }
+});
+
+// Configurar multer para upload de arquivos
+const storage = multer.diskStorage({
+    destination: function(req, file, cb) {
+        const uploadDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function(req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB
+    },
+    fileFilter: function(req, file, cb) {
+        // Aceitar apenas imagens e documentos
+        const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Tipo de arquivo não permitido'));
+        }
+    }
 });
 
 // Criar diretório para backups se não existir
@@ -43,9 +101,74 @@ const db = new sqlite3.Database(DB_FILE, (err) => {
 // Habilitar chaves estrangeiras
 db.run('PRAGMA foreign_keys = ON');
 
+// Gerenciar conexões WebSocket
+io.on('connection', (socket) => {
+    console.log('Usuário conectado:', socket.id);
+    
+    socket.on('join_room', (userId) => {
+        socket.join(`user_${userId}`);
+        console.log(`Usuário ${userId} entrou na sala`);
+    });
+    
+    socket.on('leave_room', (userId) => {
+        socket.leave(`user_${userId}`);
+        console.log(`Usuário ${userId} saiu da sala`);
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('Usuário desconectado:', socket.id);
+    });
+});
+
+// Middleware de verificação de JWT
+const verificarToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ success: false, error: 'Token não fornecido' });
+    }
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.usuario = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ success: false, error: 'Token inválido' });
+    }
+};
+
+// Função para emitir notificação em tempo real
+const emitirNotificacao = (usuarioId, notificacao) => {
+    io.to(`user_${usuarioId}`).emit('notificacao', notificacao);
+};
+
 // Função para inicializar o banco de dados
 function inicializarBancoDados() {
-    // Tabela de demandas com índices
+    // Tabela de usuários
+    db.run(`
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY,
+            nome TEXT UNIQUE,
+            email TEXT UNIQUE,
+            senha TEXT,
+            nivel TEXT,
+            pontos INTEGER DEFAULT 0,
+            conquistas TEXT DEFAULT '[]',
+            role TEXT DEFAULT 'funcionario',
+            ultimoLogin TEXT,
+            ativo INTEGER DEFAULT 1
+        )
+    `, (err) => {
+        if (err) console.error('Erro ao criar tabela usuarios:', err);
+        else {
+            console.log('✅ Tabela usuarios criada/verificada');
+            criarTabelaDemandas();
+        }
+    });
+}
+
+// Tabela de demandas com índices
+function criarTabelaDemandas() {
     db.run(`
         CREATE TABLE IF NOT EXISTS demandas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +196,10 @@ function inicializarBancoDados() {
             nomeDemanda TEXT,
             dataAtualizacao TEXT DEFAULT CURRENT_TIMESTAMP,
             criadoPor INTEGER,
-            atualizadoPor INTEGER
+            atualizadoPor INTEGER,
+            FOREIGN KEY (funcionarioId) REFERENCES usuarios(id),
+            FOREIGN KEY (criadoPor) REFERENCES usuarios(id),
+            FOREIGN KEY (atualizadoPor) REFERENCES usuarios(id)
         )
     `, (err) => {
         if (err) console.error('Erro ao criar tabela demandas:', err);
@@ -103,32 +229,10 @@ function criarIndices() {
                 completed++;
                 if (completed === indices.length) {
                     console.log('✅ Índices criados/verificados');
-                    criarTabelaUsuarios();
+                    criarTabelaAuditoria();
                 }
             }
         });
-    });
-}
-
-// Tabela de usuários
-function criarTabelaUsuarios() {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY,
-            nome TEXT UNIQUE,
-            email TEXT UNIQUE,
-            senha TEXT,
-            nivel TEXT,
-            pontos INTEGER DEFAULT 0,
-            conquistas TEXT DEFAULT '[]',
-            role TEXT DEFAULT 'funcionario'
-        )
-    `, (err) => {
-        if (err) console.error('Erro ao criar tabela usuarios:', err);
-        else {
-            console.log('✅ Tabela usuarios criada/verificada');
-            criarTabelaAuditoria();
-        }
     });
 }
 
@@ -144,7 +248,8 @@ function criarTabelaAuditoria() {
             dadosNovos TEXT,
             usuarioId INTEGER,
             dataHora TEXT DEFAULT CURRENT_TIMESTAMP,
-            ip TEXT
+            ip TEXT,
+            FOREIGN KEY (usuarioId) REFERENCES usuarios(id)
         )
     `, (err) => {
         if (err) console.error('Erro ao criar tabela auditoria:', err);
@@ -164,7 +269,9 @@ function criarTabelaFeedbacks() {
             gestorId INTEGER,
             tipo TEXT,
             mensagem TEXT,
-            dataCriacao TEXT
+            dataCriacao TEXT,
+            FOREIGN KEY (funcionarioId) REFERENCES usuarios(id),
+            FOREIGN KEY (gestorId) REFERENCES usuarios(id)
         )
     `, (err) => {
         if (err) console.error('Erro ao criar tabela feedbacks:', err);
@@ -187,19 +294,66 @@ function criarTabelaAnotacoes() {
             criadoPor INTEGER NOT NULL,
             atribuidoA INTEGER,
             audioData TEXT,
-            atualizadoEm TEXT DEFAULT CURRENT_TIMESTAMP
+            atualizadoEm TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (criadoPor) REFERENCES usuarios(id),
+            FOREIGN KEY (atribuidoA) REFERENCES usuarios(id)
         )
     `, (err) => {
         if (err) console.error('Erro ao criar tabela anotacoes:', err);
         else {
             console.log('✅ Tabela anotacoes criada/verificada');
+            criarTabelaNotificacoes();
+        }
+    });
+}
+
+// Tabela de notificações
+function criarTabelaNotificacoes() {
+    db.run(`
+        CREATE TABLE IF NOT EXISTS notificacoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuarioId INTEGER NOT NULL,
+            tipo TEXT NOT NULL,
+            titulo TEXT NOT NULL,
+            mensagem TEXT NOT NULL,
+            tag TEXT,
+            prioridade INTEGER DEFAULT 0,
+            lida INTEGER DEFAULT 0,
+            dataCriacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuarioId) REFERENCES usuarios(id)
+        )
+    `, (err) => {
+        if (err) console.error('Erro ao criar tabela notificacoes:', err);
+        else {
+            console.log('✅ Tabela notificacoes criada/verificada');
+            criarTabelaTokens();
+        }
+    });
+}
+
+// Tabela de tokens de reset de senha
+function criarTabelaTokens() {
+    db.run(`
+        CREATE TABLE IF NOT EXISTS reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuarioId INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            expiraEm TEXT NOT NULL,
+            utilizado INTEGER DEFAULT 0,
+            dataCriacao TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuarioId) REFERENCES usuarios(id)
+        )
+    `, (err) => {
+        if (err) console.error('Erro ao criar tabela reset_tokens:', err);
+        else {
+            console.log('✅ Tabela reset_tokens criada/verificada');
             inserirUsuariosPadrao();
         }
     });
 }
 
-// Inserir usuários padrão
-function inserirUsuariosPadrao() {
+// Inserir usuários padrão com senhas hasheadas
+async function inserirUsuariosPadrao() {
     const usuariosPadrao = [
         { id: 1, nome: 'Ranielly Miranda De Souza', email: 'ranielly-s@zaminebrasil.com', nivel: 'Senior', pontos: 450, conquistas: '["star", "fire", "gold"]', senha: '123456', role: 'funcionario' },
         { id: 2, nome: 'Girlene da Silva Nogueira', email: 'girlene-n@zaminebrasil.com', nivel: 'Pleno', pontos: 380, conquistas: '["star", "silver"]', senha: '123456', role: 'funcionario' },
@@ -219,7 +373,9 @@ function inserirUsuariosPadrao() {
     ];
 
     let inseridos = 0;
-    usuariosPadrao.forEach((usuario) => {
+    for (const usuario of usuariosPadrao) {
+        const senhaHash = await bcrypt.hash(usuario.senha, 10);
+        
         db.run(`
             INSERT OR IGNORE INTO usuarios 
             (id, nome, email, senha, nivel, pontos, conquistas, role) 
@@ -228,7 +384,7 @@ function inserirUsuariosPadrao() {
             usuario.id,
             usuario.nome,
             usuario.email,
-            usuario.senha,
+            senhaHash,
             usuario.nivel,
             usuario.pontos,
             usuario.conquistas,
@@ -244,7 +400,7 @@ function inserirUsuariosPadrao() {
                 }
             }
         });
-    });
+    }
 }
 
 // Função para normalizar dados da demanda
@@ -362,13 +518,181 @@ app.get('/health', (req, res) => {
             demandas: row.count,
             uptime: process.uptime(),
             timestamp: new Date().toISOString(),
-            memory: process.memoryUsage()
+            memory: process.memoryUsage(),
+            websocket: io.engine.clientsCount
         });
     });
 });
 
-// GET /api/demandas - Listar demandas
-app.get('/api/demandas', (req, res) => {
+// === ROTAS DE AUTENTICAÇÃO ===
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+    const { email, senha } = req.body;
+    
+    if (!email || !senha) {
+        return res.status(400).json({ success: false, error: 'Email e senha são obrigatórios' });
+    }
+    
+    db.get('SELECT * FROM usuarios WHERE email = ? AND ativo = 1', [email], async (err, row) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (!row) return res.status(401).json({ success: false, error: 'Credenciais inválidas' });
+        
+        try {
+            const senhaValida = await bcrypt.compare(senha, row.senha);
+            if (!senhaValida) {
+                return res.status(401).json({ success: false, error: 'Credenciais inválidas' });
+            }
+            
+            // Atualizar último login
+            db.run('UPDATE usuarios SET ultimoLogin = ? WHERE id = ?', [new Date().toISOString(), row.id]);
+            
+            // Remover senha do retorno
+            const { senha: _, ...usuarioSemSenha } = row;
+            
+            // Gerar token JWT
+            const token = jwt.sign(
+                { id: row.id, email: row.email, role: row.role },
+                JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+            
+            res.json({ 
+                success: true, 
+                usuario: usuarioSemSenha,
+                token: token
+            });
+        } catch (error) {
+            console.error('Erro ao verificar senha:', error);
+            res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+        }
+    });
+});
+
+// POST /api/auth/register
+app.post('/api/auth/register', async (req, res) => {
+    const { nome, email, senha, role = 'funcionario' } = req.body;
+    
+    if (!nome || !email || !senha) {
+        return res.status(400).json({ success: false, error: 'Todos os campos são obrigatórios' });
+    }
+    
+    try {
+        const senhaHash = await bcrypt.hash(senha, 10);
+        
+        db.run(`
+            INSERT INTO usuarios (nome, email, senha, role) 
+            VALUES (?, ?, ?, ?)
+        `, [nome, email, senhaHash, role], function(err) {
+            if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                    return res.status(400).json({ success: false, error: 'Email já cadastrado' });
+                }
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            
+            // Enviar notificação para gestores
+            db.all('SELECT * FROM usuarios WHERE role = "gestor"', [], (err, gestores) => {
+                if (!err && gestores.length > 0) {
+                    gestores.forEach(gestor => {
+                        criarNotificacao(gestor.id, 'novo_usuario', 'Novo Usuário', `Novo usuário registrado: ${nome}`, null, false);
+                    });
+                }
+            });
+            
+            res.json({ 
+                success: true, 
+                message: 'Usuário registrado com sucesso. Aguardando aprovação.' 
+            });
+        });
+    } catch (error) {
+        console.error('Erro ao registrar usuário:', error);
+        res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+    }
+});
+
+// POST /api/auth/reset-password
+app.post('/api/auth/reset-password', async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email é obrigatório' });
+    }
+    
+    // Gerar token de reset
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expiraEm = new Date(Date.now() + 3600000).toISOString(); // 1 hora
+    
+    db.run(`
+        INSERT INTO reset_tokens (usuarioId, token, expiraEm) 
+        VALUES ((SELECT id FROM usuarios WHERE email = ?), ?, ?)
+    `, [email, token, expiraEm], function(err) {
+        if (err) {
+            console.error('Erro ao gerar token:', err);
+            return res.status(500).json({ success: false, error: 'Erro ao gerar token de reset' });
+        }
+        
+        // Aqui você enviaria o email com o token
+        console.log(`Token de reset para ${email}: ${token}`);
+        
+        res.json({ 
+            success: true, 
+            message: 'Instruções de redefinição enviadas para o email' 
+        });
+    });
+});
+
+// POST /api/auth/confirm-reset
+app.post('/api/auth/confirm-reset', async (req, res) => {
+    const { token, novaSenha } = req.body;
+    
+    if (!token || !novaSenha) {
+        return res.status(400).json({ success: false, error: 'Token e nova senha são obrigatórios' });
+    }
+    
+    // Verificar token
+    db.get(`
+        SELECT rt.usuarioId, u.email FROM reset_tokens rt
+        JOIN usuarios u ON rt.usuarioId = u.id
+        WHERE rt.token = ? AND rt.utilizado = 0 AND rt.expiraEm > datetime('now')
+    `, [token], async (err, row) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (!row) return res.status(400).json({ success: false, error: 'Token inválido ou expirado' });
+        
+        try {
+            const senhaHash = await bcrypt.hash(novaSenha, 10);
+            
+            // Atualizar senha
+            db.run('UPDATE usuarios SET senha = ? WHERE id = ?', [senhaHash, row.usuarioId]);
+            
+            // Marcar token como utilizado
+            db.run('UPDATE reset_tokens SET utilizado = 1 WHERE token = ?', [token]);
+            
+            res.json({ 
+                success: true, 
+                message: 'Senha redefinida com sucesso' 
+            });
+        } catch (error) {
+            console.error('Erro ao redefinir senha:', error);
+            res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+        }
+    });
+});
+
+// === ROTAS DE USUÁRIOS ===
+
+// GET /api/usuarios
+app.get('/api/usuarios', verificarToken, (req, res) => {
+    db.all('SELECT id, nome, email, nivel, pontos, conquistas, role, ultimoLogin FROM usuarios WHERE ativo = 1', [], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        res.json(rows);
+    });
+});
+
+// === ROTAS DE DEMANDAS ===
+
+// GET /api/demandas
+app.get('/api/demandas', verificarToken, (req, res) => {
     const { status, funcionarioId, categoria, prioridade, month, year } = req.query;
     
     let sql = 'SELECT * FROM demandas WHERE 1=1';
@@ -422,16 +746,8 @@ app.get('/api/demandas', (req, res) => {
     });
 });
 
-// GET /api/usuarios
-app.get('/api/usuarios', (req, res) => {
-    db.all('SELECT * FROM usuarios', [], (err, rows) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
-        res.json(rows);
-    });
-});
-
-// POST /api/demandas - Criar nova demanda
-app.post('/api/demandas', validarDemanda, (req, res) => {
+// POST /api/demandas
+app.post('/api/demandas', verificarToken, validarDemanda, (req, res) => {
     const d = req.body;
     
     // Normalizar dados antes de salvar
@@ -468,7 +784,7 @@ app.post('/api/demandas', validarDemanda, (req, res) => {
         JSON.stringify(dadosNormalizados.atribuidos),
         JSON.stringify(dadosNormalizados.anexosCriacao),
         dadosNormalizados.nomeDemanda,
-        dadosNormalizados.funcionarioId
+        req.usuario.id
     ];
     
     db.run(sql, params, function(err) {
@@ -484,9 +800,25 @@ app.post('/api/demandas', validarDemanda, (req, res) => {
             this.lastID,
             null,
             dadosNormalizados,
-            dadosNormalizados.funcionarioId,
+            req.usuario.id,
             req.ip
         );
+        
+        // Notificar atribuídos se houver
+        if (dadosNormalizados.atribuidos && dadosNormalizados.atribuidos.length > 0) {
+            dadosNormalizados.atribuidos.forEach(atribuido => {
+                if (atribuido.id !== dadosNormalizados.funcionarioId) {
+                    criarNotificacao(
+                        atribuido.id,
+                        'nova_demanda',
+                        'Nova Tarefa Atribuída',
+                        `${dadosNormalizados.nomeFuncionario} atribuiu uma tarefa a você: ${dadosNormalizados.nomeDemanda}`,
+                        dadosNormalizados.tag,
+                        false
+                    );
+                }
+            });
+        }
         
         res.json({ 
             success: true, 
@@ -495,8 +827,8 @@ app.post('/api/demandas', validarDemanda, (req, res) => {
     });
 });
 
-// PUT /api/demandas/:id - Atualizar demanda
-app.put('/api/demandas/:id', (req, res) => {
+// PUT /api/demandas/:id
+app.put('/api/demandas/:id', verificarToken, (req, res) => {
     const id = req.params.id;
     const d = req.body;
     
@@ -518,7 +850,7 @@ app.put('/api/demandas/:id', (req, res) => {
         
         // Atualizar data de modificação
         dadosCompletos.dataAtualizacao = new Date().toISOString();
-        dadosCompletos.atualizadoPor = d.funcionarioId;
+        dadosCompletos.atualizadoPor = req.usuario.id;
         
         const sql = `
             UPDATE demandas SET
@@ -570,12 +902,35 @@ app.put('/api/demandas/:id', (req, res) => {
                 id,
                 demandaExistente,
                 dadosCompletos,
-                d.funcionarioId,
+                req.usuario.id,
                 req.ip
             );
             
+            // Notificar sobre mudanças de status
+            if (demandaExistente.status !== dadosCompletos.status) {
+                if (dadosCompletos.status === 'aprovada') {
+                    criarNotificacao(
+                        dadosCompletos.funcionarioId,
+                        'demanda_aprovada',
+                        'Demanda Aprovada',
+                        `Sua demanda "${dadosCompletos.nomeDemanda}" foi aprovada!`,
+                        dadosCompletos.tag,
+                        false
+                    );
+                } else if (dadosCompletos.status === 'reprovada') {
+                    criarNotificacao(
+                        dadosCompletos.funcionarioId,
+                        'demanda_reprovada',
+                        'Demanda Reprovada',
+                        `Sua demanda "${dadosCompletos.nomeDemanda}" foi reprovada.`,
+                        dadosCompletos.tag,
+                        false
+                    );
+                }
+            }
+            
             // Criar backup para mudanças de status
-            if (['aprovada', 'reprovada'].includes(d.status)) {
+            if (['aprovada', 'reprovada'].includes(dadosCompletos.status)) {
                 criarBackup('status_change');
             }
             
@@ -587,8 +942,8 @@ app.put('/api/demandas/:id', (req, res) => {
     });
 });
 
-// DELETE /api/demandas/:id - Excluir demanda
-app.delete('/api/demandas/:id', (req, res) => {
+// DELETE /api/demandas/:id
+app.delete('/api/demandas/:id', verificarToken, (req, res) => {
     const id = req.params.id;
     
     // Buscar demanda antes de excluir
@@ -615,7 +970,7 @@ app.delete('/api/demandas/:id', (req, res) => {
                 id,
                 demanda,
                 null,
-                req.body.usuarioId || null,
+                req.usuario.id,
                 req.ip
             );
             
@@ -627,287 +982,146 @@ app.delete('/api/demandas/:id', (req, res) => {
     });
 });
 
-// POST /api/demandas/:id/extend-deadline - Estender prazo de demanda
-app.post('/api/demandas/:id/extend-deadline', (req, res) => {
-    const id = req.params.id;
-    const { novaDataLimite, motivo } = req.body;
+// === ROTAS DE NOTIFICAÇÕES ===
+
+// GET /api/notificacoes
+app.get('/api/notificacoes', verificarToken, (req, res) => {
+    const { usuarioId } = req.query;
+    const id = usuarioId || req.usuario.id;
     
-    if (!novaDataLimite || !motivo) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'Nova data limite e motivo são obrigatórios' 
-        });
-    }
-    
-    // Buscar demanda existente
-    db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaExistente) => {
+    db.all('SELECT * FROM notificacoes WHERE usuarioId = ? ORDER BY dataCriacao DESC', [id], (err, rows) => {
         if (err) {
-            console.error('Erro ao buscar demanda:', err);
+            console.error('Erro ao buscar notificações:', err);
             return res.status(500).json({ success: false, error: err.message });
         }
         
-        if (!demandaExistente) {
-            return res.status(404).json({ success: false, error: 'Demanda não encontrada' });
-        }
-        
-        // Atualizar apenas os campos necessários
-        const sql = `
-            UPDATE demandas SET
-            dataLimite = ?,
-            comentarioGestor = ?,
-            dataAtualizacao = ?
-            WHERE id = ?
-        `;
-        
-        const comentarioAtual = demandaExistente.comentarioGestor || '';
-        const novoComentario = `${comentarioAtual}\n[Prazo estendido em ${new Date().toLocaleDateString('pt-BR')}: ${motivo}]`;
-        
-        db.run(sql, [novaDataLimite, novoComentario, new Date().toISOString(), id], function(err) {
-            if (err) {
-                console.error('Erro ao estender prazo da demanda:', err);
-                return res.status(500).json({ success: false, error: err.message });
-            }
-            
-            // Registrar auditoria
-            registrarAuditoria(
-                'EXTEND_DEADLINE',
-                'demandas',
-                id,
-                { dataLimite: demandaExistente.dataLimite, comentarioGestor: demandaExistente.comentarioGestor },
-                { dataLimite: novaDataLimite, comentarioGestor: novoComentario },
-                req.body.usuarioId || null,
-                req.ip
-            );
-            
-            // Buscar demanda atualizada para retornar
-            db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaAtualizada) => {
-                if (err) {
-                    console.error('Erro ao buscar demanda atualizada:', err);
-                    return res.status(500).json({ success: false, error: err.message });
-                }
-                
-                res.json({ 
-                    success: true, 
-                    demanda: normalizarDadosDemanda(demandaAtualizada)
-                });
-            });
-        });
-    });
-});
-
-// POST /api/demandas/:id/reassign - Reatribuir demanda
-app.post('/api/demandas/:id/reassign', (req, res) => {
-    const id = req.params.id;
-    const { novoAtribuidoId, motivo } = req.body;
-    
-    if (!novoAtribuidoId || !motivo) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'Novo atribuído e motivo são obrigatórios' 
-        });
-    }
-    
-    // Buscar demanda existente
-    db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaExistente) => {
-        if (err) {
-            console.error('Erro ao buscar demanda:', err);
-            return res.status(500).json({ success: false, error: err.message });
-        }
-        
-        if (!demandaExistente) {
-            return res.status(404).json({ success: false, error: 'Demanda não encontrada' });
-        }
-        
-        // Buscar dados do novo atribuído
-        db.get('SELECT * FROM usuarios WHERE id = ?', [novoAtribuidoId], (err, novoUsuario) => {
-            if (err) {
-                console.error('Erro ao buscar novo usuário:', err);
-                return res.status(500).json({ success: false, error: err.message });
-            }
-            
-            if (!novoUsuario) {
-                return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
-            }
-            
-            // Adicionar novo atribuído à lista existente
-            let atribuidosAtuais = [];
-            try {
-                atribuidosAtuais = JSON.parse(demandaExistente.atribuidos || '[]');
-            } catch (e) {
-                atribuidosAtuais = [];
-            }
-            
-            // Verificar se já não está atribuído
-            if (!atribuidosAtuais.find(a => a.id == novoAtribuidoId)) {
-                atribuidosAtuais.push({
-                    id: novoUsuario.id,
-                    nome: novoUsuario.nome,
-                    email: novoUsuario.email
-                });
-            }
-            
-            // Atualizar demanda
-            const sql = `
-                UPDATE demandas SET
-                atribuidos = ?,
-                status = ?,
-                comentarioGestor = ?,
-                dataAtualizacao = ?
-                WHERE id = ?
-            `;
-            
-            const comentarioAtual = demandaExistente.comentarioGestor || '';
-            const novoComentario = `${comentarioAtual}\n[Reatribuído em ${new Date().toLocaleDateString('pt-BR')} para ${novoUsuario.nome}: ${motivo}]`;
-            
-            db.run(sql, [
-                JSON.stringify(atribuidosAtuais),
-                'atribuida_pendente_aceitacao',
-                novoComentario,
-                new Date().toISOString(),
-                id
-            ], function(err) {
-                if (err) {
-                    console.error('Erro ao reatribuir demanda:', err);
-                    return res.status(500).json({ success: false, error: err.message });
-                }
-                
-                // Registrar auditoria
-                registrarAuditoria(
-                    'REASSIGN',
-                    'demandas',
-                    id,
-                    { atribuidos: demandaExistente.atribuidos, status: demandaExistente.status },
-                    { atribuidos: atribuidosAtuais, status: 'atribuida_pendente_aceitacao' },
-                    req.body.usuarioId || null,
-                    req.ip
-                );
-                
-                // Buscar demanda atualizada para retornar
-                db.get('SELECT * FROM demandas WHERE id = ?', [id], (err, demandaAtualizada) => {
-                    if (err) {
-                        console.error('Erro ao buscar demanda atualizada:', err);
-                        return res.status(500).json({ success: false, error: err.message });
-                    }
-                    
-                    res.json({ 
-                        success: true, 
-                        demanda: normalizarDadosDemanda(demandaAtualizada)
-                    });
-                });
-            });
-        });
-    });
-});
-
-// POST /api/feedbacks
-app.post('/api/feedbacks', (req, res) => {
-    const { funcionarioId, tipo, mensagem } = req.body;
-    const gestorId = 99; // ID do gestor padrão
-    
-    const sql = `
-        INSERT INTO feedbacks (funcionarioId, gestorId, tipo, mensagem, dataCriacao)
-        VALUES (?, ?, ?, ?, ?)
-    `;
-    
-    db.run(sql, [funcionarioId, gestorId, tipo, mensagem, new Date().toISOString()], function(err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
-        res.json({ success: true, feedback: { id: this.lastID, funcionarioId, gestorId, tipo, mensagem } });
-    });
-});
-
-// GET /api/feedbacks
-app.get('/api/feedbacks', (req, res) => {
-    db.all('SELECT * FROM feedbacks ORDER BY dataCriacao DESC', [], (err, rows) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
         res.json(rows);
     });
 });
 
-// POST /api/auth/login
-app.post('/api/auth/login', (req, res) => {
-    const { email, senha } = req.body;
+// POST /api/notificacoes
+app.post('/api/notificacoes', verificarToken, (req, res) => {
+    const { usuarioId, tipo, titulo, mensagem, tag, prioridade } = req.body;
     
-    db.get('SELECT * FROM usuarios WHERE email = ? AND senha = ?', [email, senha], (err, row) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
-        if (!row) return res.status(401).json({ success: false, error: 'Credenciais inválidas' });
-        
-        // Remover senha do retorno
-        const { senha: _, ...usuarioSemSenha } = row;
-        res.json({ success: true, usuario: usuarioSemSenha });
-    });
-});
-
-// POST /api/auth/reset-password
-app.post('/api/auth/reset-password', (req, res) => {
-    const { email } = req.body;
-    res.json({ success: true, message: 'Instruções de redefinição de senha enviadas para o email' });
-});
-
-// POST /api/auth/register
-app.post('/api/auth/register', (req, res) => {
-    const { nome, email, role } = req.body;
-    res.json({ success: true, message: 'Solicitação de cadastro recebida' });
-});
-
-// GET /api/demandas/estatisticas
-app.get('/api/demandas/estatisticas', (req, res) => {
-    const { periodo = 30 } = req.query;
-    
-    const dataCorte = new Date();
-    dataCorte.setDate(dataCorte.getDate() - parseInt(periodo));
-    
-    const sql = `
-        SELECT 
-            COUNT(*) as total,
-            COUNT(CASE WHEN status = 'aprovada' THEN 1 END) as aprovadas,
-            COUNT(CASE WHEN status = 'pendente' THEN 1 END) as pendentes,
-            COUNT(CASE WHEN status = 'reprovada' THEN 1 END) as reprovadas,
-            COUNT(CASE WHEN status = 'finalizado_pendente_aprovacao' THEN 1 END) em_analise,
-            COUNT(CASE WHEN isRotina = 1 THEN 1 END) as rotina
-        FROM demandas 
-        WHERE dataCriacao >= ?
-    `;
-    
-    db.get(sql, [dataCorte.toISOString()], (err, row) => {
-        if (err) {
-            console.error('Erro ao buscar estatísticas:', err);
-            return res.status(500).json({ success: false, error: err.message });
-        }
-        
-        res.json({ success: true, estatisticas: row });
-    });
-});
-
-// GET /api/demandas/search
-app.get('/api/demandas/search', (req, res) => {
-    const { q, limit = 20 } = req.query;
-    
-    if (!q || q.length < 2) {
-        return res.json({ success: true, data: [] });
+    if (!usuarioId || !tipo || !titulo || !mensagem) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'usuarioId, tipo, titulo e mensagem são obrigatórios' 
+        });
     }
     
     const sql = `
-        SELECT * FROM demandas 
-        WHERE nomeDemanda LIKE ? OR descricao LIKE ? OR tag LIKE ?
-        ORDER BY dataCriacao DESC
-        LIMIT ?
+        INSERT INTO notificacoes (usuarioId, tipo, titulo, mensagem, tag, prioridade, dataCriacao)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     
-    const searchTerm = `%${q}%`;
-    
-    db.all(sql, [searchTerm, searchTerm, searchTerm, parseInt(limit)], (err, rows) => {
+    db.run(sql, [
+        usuarioId, 
+        tipo, 
+        titulo, 
+        mensagem, 
+        tag || null, 
+        prioridade || false, 
+        new Date().toISOString()
+    ], function(err) {
         if (err) {
-            console.error('Erro na busca:', err);
+            console.error('Erro ao criar notificação:', err);
             return res.status(500).json({ success: false, error: err.message });
         }
         
-        const demandasNormalizadas = rows.map(demanda => normalizarDadosDemanda(demanda));
-        res.json({ success: true, data: demandasNormalizadas });
+        // Enviar notificação em tempo real
+        emitirNotificacao(usuarioId, {
+            id: this.lastID,
+            tipo,
+            titulo,
+            mensagem,
+            tag,
+            prioridade,
+            dataCriacao: new Date().toISOString()
+        });
+        
+        res.json({ success: true, id: this.lastID });
     });
 });
 
-// GET /api/anotacoes - Listar anotações
-app.get('/api/anotacoes', (req, res) => {
+// PUT /api/notificacoes/:id/marcar-lida
+app.put('/api/notificacoes/:id/marcar-lida', verificarToken, (req, res) => {
+    const id = req.params.id;
+    
+    db.run('UPDATE notificacoes SET lida = 1 WHERE id = ?', [id], function(err) {
+        if (err) {
+            console.error('Erro ao marcar notificação como lida:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// DELETE /api/notificacoes/:id
+app.delete('/api/notificacoes/:id', verificarToken, (req, res) => {
+    const id = req.params.id;
+    
+    db.run('DELETE FROM notificacoes WHERE id = ?', [id], function(err) {
+        if (err) {
+            console.error('Erro ao excluir notificação:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// DELETE /api/notificacoes/limpar-todas
+app.delete('/api/notificacoes/limpar-todas', verificarToken, (req, res) => {
+    const { usuarioId } = req.query;
+    const id = usuarioId || req.usuario.id;
+    
+    db.run('DELETE FROM notificacoes WHERE usuarioId = ?', [id], function(err) {
+        if (err) {
+            console.error('Erro ao limpar notificações:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// === ROTAS DE UPLOAD DE ARQUIVOS ===
+
+// POST /api/upload
+app.post('/api/upload', verificarToken, upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Nenhum arquivo enviado' });
+    }
+    
+    res.json({
+        success: true,
+        file: {
+            nome: req.file.originalname,
+            tamanho: req.file.size,
+            tipo: req.file.mimetype,
+            caminho: req.file.filename
+        }
+    });
+});
+
+// GET /api/uploads/:filename
+app.get('/api/uploads/:filename', verificarToken, (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'uploads', filename);
+    
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).json({ success: false, error: 'Arquivo não encontrado' });
+    }
+});
+
+// === ROTAS DE ANOTAÇÕES ===
+
+// GET /api/anotacoes
+app.get('/api/anotacoes', verificarToken, (req, res) => {
     const { criadoPor, atribuidoA, month, year } = req.query;
     
     let sql = 'SELECT * FROM anotacoes WHERE 1=1';
@@ -949,14 +1163,14 @@ app.get('/api/anotacoes', (req, res) => {
     });
 });
 
-// POST /api/anotacoes - Criar nova anotação
-app.post('/api/anotacoes', (req, res) => {
-    const { titulo, conteudo, cor, criadoPor, atribuidoA, audioData } = req.body;
+// POST /api/anotacoes
+app.post('/api/anotacoes', verificarToken, (req, res) => {
+    const { titulo, conteudo, cor, atribuidoA, audioData } = req.body;
     
-    if (!titulo || !conteudo || !criadoPor) {
+    if (!titulo || !conteudo) {
         return res.status(400).json({ 
             success: false, 
-            error: 'Título, conteúdo e criadoPor são obrigatórios' 
+            error: 'Título e conteúdo são obrigatórios' 
         });
     }
     
@@ -965,10 +1179,29 @@ app.post('/api/anotacoes', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [titulo, conteudo, cor || '#3498db', criadoPor, atribuidoA || null, audioData || null], function(err) {
+    db.run(sql, [
+        titulo, 
+        conteudo, 
+        cor || '#3498db', 
+        req.usuario.id, 
+        atribuidoA || null, 
+        audioData || null
+    ], function(err) {
         if (err) {
             console.error('Erro ao criar anotação:', err);
             return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        // Notificar se atribuído a alguém
+        if (atribuidoA) {
+            criarNotificacao(
+                atribuidoA,
+                'anotacao_atribuida',
+                'Anotação Atribuída',
+                `Uma anotação foi atribuída a você: ${titulo}`,
+                null,
+                false
+            );
         }
         
         // Buscar anotação criada para retornar
@@ -986,8 +1219,8 @@ app.post('/api/anotacoes', (req, res) => {
     });
 });
 
-// PUT /api/anotacoes/:id - Atualizar anotação
-app.put('/api/anotacoes/:id', (req, res) => {
+// PUT /api/anotacoes/:id
+app.put('/api/anotacoes/:id', verificarToken, (req, res) => {
     const id = req.params.id;
     const { titulo, conteudo, cor, atribuidoA, audioData } = req.body;
     
@@ -1043,8 +1276,8 @@ app.put('/api/anotacoes/:id', (req, res) => {
     });
 });
 
-// DELETE /api/anotacoes/:id - Excluir anotação
-app.delete('/api/anotacoes/:id', (req, res) => {
+// DELETE /api/anotacoes/:id
+app.delete('/api/anotacoes/:id', verificarToken, (req, res) => {
     const id = req.params.id;
     
     db.run('DELETE FROM anotacoes WHERE id = ?', [id], function(err) {
@@ -1057,8 +1290,105 @@ app.delete('/api/anotacoes/:id', (req, res) => {
     });
 });
 
+// === ROTAS DE FEEDBACKS ===
+
+// POST /api/feedbacks
+app.post('/api/feedbacks', verificarToken, (req, res) => {
+    const { funcionarioId, tipo, mensagem } = req.body;
+    
+    const sql = `
+        INSERT INTO feedbacks (funcionarioId, gestorId, tipo, mensagem, dataCriacao)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [funcionarioId, req.usuario.id, tipo, mensagem, new Date().toISOString()], function(err) {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        
+        // Notificar funcionário
+        criarNotificacao(
+            funcionarioId,
+            'feedback',
+            'Novo Feedback',
+            `Você recebeu um novo feedback: ${tipo}`,
+            null,
+            false
+        );
+        
+        res.json({ success: true, feedback: { id: this.lastID, funcionarioId, gestorId: req.usuario.id, tipo, mensagem } });
+    });
+});
+
+// GET /api/feedbacks
+app.get('/api/feedbacks', verificarToken, (req, res) => {
+    db.all('SELECT * FROM feedbacks ORDER BY dataCriacao DESC', [], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        res.json(rows);
+    });
+});
+
+// === ROTAS DE ESTATÍSTICAS ===
+
+// GET /api/demandas/estatisticas
+app.get('/api/demandas/estatisticas', verificarToken, (req, res) => {
+    const { periodo = 30 } = req.query;
+    
+    const dataCorte = new Date();
+    dataCorte.setDate(dataCorte.getDate() - parseInt(periodo));
+    
+    const sql = `
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'aprovada' THEN 1 END) as aprovadas,
+            COUNT(CASE WHEN status = 'pendente' THEN 1 END) as pendentes,
+            COUNT(CASE WHEN status = 'reprovada' THEN 1 END) as reprovadas,
+            COUNT(CASE WHEN status = 'finalizado_pendente_aprovacao' THEN 1 END) em_analise,
+            COUNT(CASE WHEN isRotina = 1 THEN 1 END) as rotina
+        FROM demandas 
+        WHERE dataCriacao >= ?
+    `;
+    
+    db.get(sql, [dataCorte.toISOString()], (err, row) => {
+        if (err) {
+            console.error('Erro ao buscar estatísticas:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        res.json({ success: true, estatisticas: row });
+    });
+});
+
+// GET /api/demandas/search
+app.get('/api/demandas/search', verificarToken, (req, res) => {
+    const { q, limit = 20 } = req.query;
+    
+    if (!q || q.length < 2) {
+        return res.json({ success: true, data: [] });
+    }
+    
+    const sql = `
+        SELECT * FROM demandas 
+        WHERE nomeDemanda LIKE ? OR descricao LIKE ? OR tag LIKE ?
+        ORDER BY dataCriacao DESC
+        LIMIT ?
+    `;
+    
+    const searchTerm = `%${q}%`;
+    
+    db.all(sql, [searchTerm, searchTerm, searchTerm, parseInt(limit)], (err, rows) => {
+        if (err) {
+            console.error('Erro na busca:', err);
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        
+        const demandasNormalizadas = rows.map(demanda => normalizarDadosDemanda(demanda));
+        res.json({ success: true, data: demandasNormalizadas });
+    });
+});
+
+// === ROTAS DE BACKUP ===
+
 // POST /api/backup
-app.post('/api/backup', (req, res) => {
+app.post('/api/backup', verificarToken, (req, res) => {
     const { tipo = 'manual' } = req.body;
     
     criarBackup(tipo, (err, filename) => {
@@ -1075,8 +1405,8 @@ app.post('/api/backup', (req, res) => {
     });
 });
 
-// GET /api/backup - Download do backup atual
-app.get('/api/backup', (req, res) => {
+// GET /api/backup
+app.get('/api/backup', verificarToken, (req, res) => {
     db.all('SELECT * FROM demandas', [], (err, rows) => {
         if (err) return res.status(500).json({ success: false, error: err.message });
         
@@ -1092,7 +1422,7 @@ app.get('/api/backup', (req, res) => {
 });
 
 // POST /api/restore
-app.post('/api/restore', (req, res) => {
+app.post('/api/restore', verificarToken, (req, res) => {
     const { demandas } = req.body;
     
     if (!Array.isArray(demandas)) {
@@ -1108,7 +1438,7 @@ app.post('/api/restore', (req, res) => {
         const sql = `
             INSERT OR REPLACE INTO demandas 
             (id, funcionarioId, nomeFuncionario, emailFuncionario, categoria, prioridade, complexidade, descricao, local, dataCriacao, dataLimite, status, isRotina, diasSemana, tag, comentarios, comentarioGestor, dataConclusao, atribuidos, anexosCriacao, anexosResolucao, comentarioReprovacaoAtribuicao, nomeDemanda)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
         const params = [
@@ -1154,6 +1484,34 @@ app.post('/api/restore', (req, res) => {
         });
     }, 1000);
 });
+
+// === FUNÇÕES AUXILIARES ===
+
+// Função para criar notificação
+const criarNotificacao = (usuarioId, tipo, titulo, mensagem, tag, prioridade) => {
+    const sql = `
+        INSERT INTO notificacoes (usuarioId, tipo, titulo, mensagem, tag, prioridade, dataCriacao)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [usuarioId, tipo, titulo, mensagem, tag, prioridade, new Date().toISOString()], function(err) {
+        if (err) {
+            console.error('Erro ao criar notificação:', err);
+            return;
+        }
+        
+        // Enviar notificação em tempo real
+        emitirNotificacao(usuarioId, {
+            id: this.lastID,
+            tipo,
+            titulo,
+            mensagem,
+            tag,
+            prioridade,
+            dataCriacao: new Date().toISOString()
+        });
+    });
+};
 
 // Função para criar backups
 const criarBackup = (tipo = 'auto', callback) => {
@@ -1241,11 +1599,13 @@ app.use((req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Servidor iniciado em porta ${PORT}`);
     console.log(`📁 Diretório de backups: ${backupDir}`);
+    console.log(`📁 Diretório de uploads: ${path.join(__dirname, 'uploads')}`);
     console.log(`⏰ Backups automáticos a cada 6 horas`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`📡 WebSocket habilitado para atualizações em tempo real`);
 });
 
 // Tratamento de encerramento gracioso
