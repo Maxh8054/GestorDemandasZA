@@ -364,6 +364,7 @@
             align-items: center;
         }
 
+        /* Dashboard atualizado */
         .dashboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -403,6 +404,7 @@
         .stat-card.warning::before { background: var(--warning-color); }
         .stat-card.danger::before { background: var(--danger-color); }
         .stat-card.info::before { background: var(--info-color); }
+        .stat-card.routine::before { background: var(--routine-color); }
 
         .stat-icon {
             font-size: 2rem;
@@ -438,6 +440,7 @@
         .stat-icon.warning { background-color: rgba(243, 156, 18, 0.1); color: var(--warning-color); }
         .stat-icon.danger { background-color: rgba(231, 76, 60, 0.1); color: var(--danger-color); }
         .stat-icon.info { background-color: rgba(52, 152, 219, 0.1); color: var(--info-color); }
+        .stat-icon.routine { background-color: rgba(155, 89, 182, 0.1); color: var(--routine-color); }
 
         .stat-info h3 {
             font-size: 1.8rem;
@@ -1807,6 +1810,203 @@
             font-weight: bold;
             color: var(--primary-color);
         }
+
+        /* Dashboard melhorado */
+        .dashboard-improved {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .dashboard-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-filters select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-card {
+            background: var(--light-color);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .dashboard-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .dashboard-card-title {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+            margin: 0;
+        }
+
+        .dashboard-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .dashboard-card-content {
+            margin-bottom: 15px;
+        }
+
+        .dashboard-card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .dashboard-card-description {
+            color: var(--gray-color);
+            font-size: 0.9rem;
+            margin: 5px 0 0 0;
+        }
+
+        .dashboard-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-card-progress {
+            height: 5px;
+            background: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .dashboard-card-progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.5s ease;
+        }
+
+        .dashboard-card-action {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .dashboard-card-action:hover {
+            text-decoration: underline;
+        }
+
+        /* Tabela de demandas recentes */
+        .recent-demandas-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .recent-demandas-table th,
+        .recent-demandas-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .recent-demandas-table th {
+            background: var(--light-color);
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+
+        .recent-demandas-table tr:hover {
+            background: rgba(44, 62, 80, 0.05);
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pendente {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning-color);
+        }
+
+        .status-badge.aprovada {
+            background: rgba(39, 174, 96, 0.2);
+            color: var(--success-color);
+        }
+
+        .status-badge.atrasada {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger-color);
+        }
+
+        .priority-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .priority-badge.importante {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger-color);
+        }
+
+        .priority-badge.media {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning-color);
+        }
+
+        .priority-badge.relevante {
+            background: rgba(52, 152, 219, 0.2);
+            color: var(--info-color);
+        }
     </style>
 </head>
 <body>
@@ -1973,56 +2173,248 @@
         </header>
 
         <main>
-            <div class="dashboard">
-                <div class="stat-card" onclick="drillDown('total')">
-                    <div class="stat-icon primary">
-                        <i class="fas fa-tasks"></i>
+            <!-- Dashboard melhorado -->
+            <div id="dashboard" class="tab-content active">
+                <div class="dashboard-improved">
+                    <div class="dashboard-header">
+                        <h2 class="dashboard-title"><i class="fas fa-tachometer-alt"></i> Dashboard de Demandas</h2>
+                        <div class="dashboard-filters">
+                            <select id="dashboardFuncionarioFilter" onchange="filtrarDashboard()">
+                                <option value="todos">Todos os Funcionários</option>
+                            </select>
+                            <select id="dashboardPeriodoFilter" onchange="filtrarDashboard()">
+                                <option value="7">Últimos 7 dias</option>
+                                <option value="30">Últimos 30 dias</option>
+                                <option value="90">Últimos 90 dias</option>
+                                <option value="365">Último ano</option>
+                            </select>
+                            <select id="dashboardCategoriaFilter" onchange="filtrarDashboard()">
+                                <option value="todas">Todas as Categorias</option>
+                                <option value="Comercial / Negócio">Comercial / Negócio</option>
+                                <option value="Vendas">Vendas</option>
+                                <option value="Pós-venda">Pós-venda</option>
+                                <option value="Negociação">Negociação</option>
+                                <option value="Proposta / Orçamento">Proposta / Orçamento</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Fidelização">Fidelização</option>
+                                <option value="Gestão / Administrativo">Gestão / Administrativo</option>
+                                <option value="Planejamento">Planejamento</option>
+                                <option value="Gestão de Projetos">Gestão de Projetos</option>
+                                <option value="Alinhamento Interno">Alinhamento Interno</option>
+                                <option value="Tomada de Decisão">Tomada de Decisão</option>
+                                <option value="Auditoria">Auditoria</option>
+                                <option value="Compras">Compras</option>
+                                <option value="Técnico / Operacional">Técnico / Operacional</option>
+                                <option value="Manutenção">Manutenção</option>
+                                <option value="Implantação">Implantação</option>
+                                <option value="Testes">Testes</option>
+                                <option value="Correção de Erros">Correção de Erros</option>
+                                <option value="Monitoramento">Monitoramento</option>
+                                <option value="Otimização">Otimização</option>
+                                <option value="TI / Dados">TI / Dados</option>
+                                <option value="Análise de Dados">Análise de Dados</option>
+                                <option value="Automação">Automação</option>
+                                <option value="Integração de Sistemas">Integração de Sistemas</option>
+                                <option value="Infraestrutura">Infraestrutura</option>
+                                <option value="Segurança">Segurança</option>
+                                <option value="Backup">Backup</option>
+                                <option value="Comunicação">Comunicação</option>
+                                <option value="Apresentação">Apresentação</option>
+                                <option value="Treinamento">Treinamento</option>
+                                <option value="Documentação">Documentação</option>
+                                <option value="Feedback">Feedback</option>
+                                <option value="Atendimento">Atendimento</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                            <select id="dashboardPrioridadeFilter" onchange="filtrarDashboard()">
+                                <option value="todas">Todas as Prioridades</option>
+                                <option value="Importante">Importante</option>
+                                <option value="Média">Média</option>
+                                <option value="Relevante">Relevante</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h3 id="totalDemandas">0</h3>
-                        <p>Total de Demandas</p>
+                    
+                    <div class="dashboard-content">
+                        <div class="dashboard-card">
+                            <div class="dashboard-card-header">
+                                <h3 class="dashboard-card-title">Total de Demandas</h3>
+                                <div class="dashboard-card-icon primary">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                            </div>
+                            <div class="dashboard-card-content">
+                                <p class="dashboard-card-value" id="totalDemandasCard">0</p>
+                                <p class="dashboard-card-description">Demandas registradas no sistema</p>
+                            </div>
+                            <div class="dashboard-card-progress">
+                                <div class="dashboard-card-progress-bar" id="totalProgress" style="width: 0%"></div>
+                            </div>
+                            <div class="dashboard-card-footer">
+                                <span class="dashboard-card-description">
+                                    <span id="totalPercentual">0%</span> do total
+                                </span>
+                                <a href="#" class="dashboard-card-action" onclick="drillDown('total')">
+                                    Ver detalhes <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="dashboard-card-header">
+                                <h3 class="dashboard-card-title">Em Andamento</h3>
+                                <div class="dashboard-card-icon warning">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                            <div class="dashboard-card-content">
+                                <p class="dashboard-card-value" id="pendentesCard">0</p>
+                                <p class="dashboard-card-description">Demandas em progresso</p>
+                            </div>
+                            <div class="dashboard-card-progress">
+                                <div class="dashboard-card-progress-bar" id="pendentesProgress" style="width: 0%; background-color: var(--warning-color)"></div>
+                            </div>
+                            <div class="dashboard-card-footer">
+                                <span class="dashboard-card-description">
+                                    <span id="pendentesPercentual">0%</span> do total
+                                </span>
+                                <a href="#" class="dashboard-card-action" onclick="drillDown('pending')">
+                                    Ver detalhes <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="dashboard-card-header">
+                                <h3 class="dashboard-card-title">Atrasadas</h3>
+                                <div class="dashboard-card-icon danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                            </div>
+                            <div class="dashboard-card-content">
+                                <p class="dashboard-card-value" id="atrasadasCard">0</p>
+                                <p class="dashboard-card-description">Demandas fora do prazo</p>
+                            </div>
+                            <div class="dashboard-card-progress">
+                                <div class="dashboard-card-progress-bar" id="atrasadasProgress" style="width: 0%; background-color: var(--danger-color)"></div>
+                            </div>
+                            <div class="dashboard-card-footer">
+                                <span class="dashboard-card-description">
+                                    <span id="atrasadasPercentual">0%</span> do total
+                                </span>
+                                <a href="#" class="dashboard-card-action" onclick="drillDown('overdue')">
+                                    Ver detalhes <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="dashboard-card-header">
+                                <h3 class="dashboard-card-title">Concluídas</h3>
+                                <div class="dashboard-card-icon success">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="dashboard-card-content">
+                                <p class="dashboard-card-value" id="aprovadasCard">0</p>
+                                <p class="dashboard-card-description">Demandas finalizadas</p>
+                            </div>
+                            <div class="dashboard-card-progress">
+                                <div class="dashboard-card-progress-bar" id="aprovadasProgress" style="width: 0%; background-color: var(--success-color)"></div>
+                            </div>
+                            <div class="dashboard-card-footer">
+                                <span class="dashboard-card-description">
+                                    <span id="aprovadasPercentual">0%</span> do total
+                                </span>
+                                <a href="#" class="dashboard-card-action" onclick="drillDown('completed')">
+                                    Ver detalhes <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="dashboard-card-header">
+                                <h3 class="dashboard-card-title">Tarefas de Rotina</h3>
+                                <div class="dashboard-card-icon routine">
+                                    <i class="fas fa-redo"></i>
+                                </div>
+                            </div>
+                            <div class="dashboard-card-content">
+                                <p class="dashboard-card-value" id="rotinaCard">0</p>
+                                <p class="dashboard-card-description">Tarefas recorrentes</p>
+                            </div>
+                            <div class="dashboard-card-progress">
+                                <div class="dashboard-card-progress-bar" id="rotinaProgress" style="width: 0%; background-color: var(--routine-color)"></div>
+                            </div>
+                            <div class="dashboard-card-footer">
+                                <span class="dashboard-card-description">
+                                    <span id="rotinaPercentual">0%</span> do total
+                                </span>
+                                <a href="#" class="dashboard-card-action" onclick="drillDown('routine')">
+                                    Ver detalhes <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="stat-card warning" onclick="drillDown('pending')">
-                    <div class="stat-icon warning">
-                        <i class="fas fa-clock"></i>
+                    
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h3>
+                                <span><i class="fas fa-chart-pie"></i> Distribuição de Status</span>
+                                <div class="chart-actions">
+                                    <button onclick="refreshChart('status')"><i class="fas fa-sync-alt"></i></button>
+                                    <button onclick="downloadChart('status')"><i class="fas fa-download"></i></button>
+                                </div>
+                            </h3>
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>
+                                <span><i class="fas fa-chart-bar"></i> Produtividade por Funcionário</span>
+                                <div class="chart-actions">
+                                    <button onclick="refreshChart('productivity')"><i class="fas fa-sync-alt"></i></button>
+                                    <button onclick="downloadChart('productivity')"><i class="fas fa-download"></i></button>
+                                </div>
+                            </h3>
+                            <canvas id="productivityChart"></canvas>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <h3 id="pendentesCount">0</h3>
-                        <p>Em Andamento</p>
-                    </div>
-                </div>
-                <div class="stat-card danger" onclick="drillDown('overdue')">
-                    <div class="stat-icon danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="atrasadasCount">0</h3>
-                        <p>Atrasadas</p>
-                    </div>
-                </div>
-                <div class="stat-card success" onclick="drillDown('completed')">
-                    <div class="stat-icon success">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="aprovadasCount">0</h3>
-                        <p>Concluídas</p>
-                    </div>
-                </div>
-                <div class="stat-card info" onclick="drillDown('routine')">
-                    <div class="stat-icon info">
-                        <i class="fas fa-redo"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="rotinaCount">0</h3>
-                        <p>Tarefas de Rotina</p>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-list"></i> Demandas Recentes</h2>
+                            <div class="card-actions">
+                                <button onclick="refreshRecentDemandas()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                                <button onclick="exportRecentDemandas()"><i class="fas fa-download"></i> Exportar</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="recent-demandas-table">
+                                <thead>
+                                    <tr>
+                                        <th>TAG</th>
+                                        <th>Nome</th>
+                                        <th>Responsável</th>
+                                        <th>Categoria</th>
+                                        <th>Prioridade</th>
+                                        <th>Status</th>
+                                        <th>Prazo</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentDemandasTableBody">
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; color: #999;">Carregando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('dashboard')">
+                <div class="tab" onclick="switchTab('dashboard')">
                     <i class="fas fa-chart-pie"></i> Dashboard
                 </div>
                 <div class="tab" onclick="switchTab('nova')">
@@ -2062,103 +2454,6 @@
                 </div>
                 <div class="tab" id="gestorTab5" style="display: none;" onclick="switchTab('exportar')">
                     <i class="fas fa-download"></i> Exportar/Importar
-                </div>
-            </div>
-
-            <div id="dashboard" class="tab-content active">
-                <div class="filter-container">
-                    <label for="filtroFuncionario">Filtrar por Funcionário:</label>
-                    <select id="filtroFuncionario" onchange="filtrarDashboard()">
-                        <option value="todos">Todos os Funcionários</option>
-                    </select>
-                    
-                    <label for="filtroPeriodo">Período:</label>
-                    <select id="filtroPeriodo" onchange="filtrarDashboard()">
-                        <option value="7">Últimos 7 dias</option>
-                        <option value="30">Últimos 30 dias</option>
-                        <option value="90">Últimos 90 dias</option>
-                        <option value="365">Último ano</option>
-                    </select>
-                    
-                    <label for="filtroCategoria">Categoria:</label>
-                    <select id="filtroCategoria" onchange="filtrarDashboard()">
-                        <option value="todas">Todas</option>
-                        <option value="Comercial / Negócio">Comercial / Negócio</option>
-                        <option value="Vendas">Vendas</option>
-                        <option value="Pós-venda">Pós-venda</option>
-                        <option value="Negociação">Negociação</option>
-                        <option value="Proposta / Orçamento">Proposta / Orçamento</option>
-                        <option value="Follow-up">Follow-up</option>
-                        <option value="Fidelização">Fidelização</option>
-                        <option value="Gestão / Administrativo">Gestão / Administrativo</option>
-                        <option value="Planejamento">Planejamento</option>
-                        <option value="Gestão de Projetos">Gestão de Projetos</option>
-                        <option value="Alinhamento Interno">Alinhamento Interno</option>
-                        <option value="Tomada de Decisão">Tomada de Decisão</option>
-                        <option value="Auditoria">Auditoria</option>
-                        <option value="Compras">Compras</option>
-                        <option value="Técnico / Operacional">Técnico / Operacional</option>
-                        <option value="Manutenção">Manutenção</option>
-                        <option value="Implantação">Implantação</option>
-                        <option value="Testes">Testes</option>
-                        <option value="Correção de Erros">Correção de Erros</option>
-                        <option value="Monitoramento">Monitoramento</option>
-                        <option value="Otimização">Otimização</option>
-                        <option value="TI / Dados">TI / Dados</option>
-                        <option value="Análise de Dados">Análise de Dados</option>
-                        <option value="Automação">Automação</option>
-                        <option value="Integração de Sistemas">Integração de Sistemas</option>
-                        <option value="Infraestrutura">Infraestrutura</option>
-                        <option value="Segurança">Segurança</option>
-                        <option value="Backup">Backup</option>
-                        <option value="Comunicação">Comunicação</option>
-                        <option value="Apresentação">Apresentação</option>
-                        <option value="Treinamento">Treinamento</option>
-                        <option value="Documentação">Documentação</option>
-                        <option value="Feedback">Feedback</option>
-                        <option value="Atendimento">Atendimento</option>
-                        <option value="Outros">Outros</option>
-                    </select>
-                    
-                    <label for="filtroPrioridade">Prioridade:</label>
-                    <select id="filtroPrioridade" onchange="filtrarDashboard()">
-                        <option value="todas">Todas</option>
-                        <option value="Importante">Importante</option>
-                        <option value="Média">Média</option>
-                        <option value="Relevante">Relevante</option>
-                    </select>
-                    
-                    <button onclick="resetFilters()">
-                        <i class="fas fa-undo"></i> Resetar
-                    </button>
-                </div>
-
-                <div class="reminder-container" id="reminderContainer" style="display: none;">
-                    <h3><i class="fas fa-bell"></i> Lembretes de Prazo</h3>
-                    <div id="reminderList"></div>
-                </div>
-
-                <div class="charts-grid">
-                    <div class="chart-container">
-                        <h3>
-                            <span><i class="fas fa-chart-pie"></i> Distribuição de Status</span>
-                            <div class="chart-actions">
-                                <button onclick="refreshChart('status')"><i class="fas fa-sync-alt"></i></button>
-                                <button onclick="downloadChart('status')"><i class="fas fa-download"></i></button>
-                            </div>
-                        </h3>
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <h3>
-                            <span><i class="fas fa-chart-bar"></i> Produtividade por Funcionário</span>
-                            <div class="chart-actions">
-                                <button onclick="refreshChart('productivity')"><i class="fas fa-sync-alt"></i></button>
-                                <button onclick="downloadChart('productivity')"><i class="fas fa-download"></i></button>
-                            </div>
-                        </h3>
-                        <canvas id="productivityChart"></canvas>
-                    </div>
                 </div>
             </div>
 
@@ -2439,8 +2734,6 @@
                                 <option value="dataLimite">Ordenar por Data Limite</option>
                                 <option value="categoria">Ordenar por Categoria</option>
                             </select>
-                            <button onclick="resetMindmap()"><i class="fas fa-undo"></i> Resetar</button>
-                            <button onclick="saveMindmapLayout()"><i class="fas fa-save"></i> Salvar Layout</button>
                         </div>
                     </div>
                     <div id="mindmapArea">
@@ -2892,29 +3185,6 @@
         }
     }
 
-    // Função para iniciar/parar a transcrição
-    function toggleTranscription() {
-        if (!recognition) {
-            showNotification('error', 'Reconhecimento de Fala', 'Seu navegador não suporta reconhecimento de fala.');
-            return;
-        }
-
-        const transcriptionArea = document.getElementById('transcriptionArea');
-        const transcribeBtn = document.getElementById('transcribeBtn');
-
-        if (isTranscribing) {
-            recognition.stop();
-            isTranscribing = false;
-            transcribeBtn.innerHTML = '<i class="fas fa-microphone"></i> Transcrever';
-        } else {
-            recognition.start();
-            isTranscribing = true;
-            transcribeBtn.innerHTML = '<i class="fas fa-stop"></i> Parar';
-            transcriptionArea.innerHTML = '<p><strong>Ouvindo...</strong> Fale agora para transcrever.</p>';
-            transcriptionArea.classList.add('active');
-        }
-    }
-
     // Função para inicializar filtros de mês e ano
     function inicializarFiltrosData() {
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -3323,14 +3593,14 @@
 
     // Carregar funcionários nos selects
     function carregarFuncionariosNosSelect() {
-        const selects = ['filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'reassignTo', 'noteAssignTo', 'mindmapFuncFilter', 'mindmapLocalFilter'];
+        const selects = ['dashboardFuncionarioFilter', 'filtroFuncionario', 'cobrancaFuncionario', 'colabFuncFilter', 'colabLocalFilter', 'reassignTo', 'noteAssignTo', 'mindmapFuncFilter', 'mindmapLocalFilter'];
         
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
                 select.innerHTML = '';
                 
-                if (selectId === 'filtroFuncionario' || selectId === 'colabFuncFilter' || selectId === 'mindmapFuncFilter') {
+                if (selectId === 'dashboardFuncionarioFilter' || selectId === 'filtroFuncionario' || selectId === 'colabFuncFilter' || selectId === 'mindmapFuncFilter') {
                     const defaultOption = new Option('Todos os Funcionários', 'todos');
                     select.add(defaultOption);
                 } else if (selectId === 'cobrancaFuncionario') {
@@ -3610,9 +3880,12 @@
     function getDemandasParaUsuarioLogado() {
         if (!usuarioLogado) return [];
         
-        // Para gestores, mostrar todas as demandas dos colaboradores no dashboard
+        // Para gestores, mostrar apenas as demandas que eles criaram na aba "Minhas Demandas"
         if (usuarioLogado.role === 'gestor') {
-            return todasDemandas;
+            return todasDemandas.filter(demanda => {
+                // Mostrar apenas as demandas criadas pelo gestor
+                return demanda.funcionarioId === usuarioLogado.id;
+            });
         }
         
         // Para funcionários, as demandas que eles criaram ou que foram atribuídas a eles
@@ -3642,15 +3915,22 @@
         });
     }
 
-    // Obter demandas filtradas
-    function getDemandasFiltradas() {
-        let demandasBase = getDemandasParaUsuarioLogado();
+    // Obter demandas filtradas para o dashboard
+    function getDemandasFiltradasDashboard() {
+        let demandasBase;
+        
+        // Para gestores, mostrar todas as demandas dos funcionários no dashboard
+        if (usuarioLogado.role === 'gestor') {
+            demandasBase = todasDemandas;
+        } else {
+            demandasBase = getDemandasParaUsuarioLogado();
+        }
 
         if (filtroFuncionarioAtual !== 'todos') {
             demandasBase = demandasBase.filter(d => d.funcionarioId == filtroFuncionarioAtual);
         }
         
-        const periodo = document.getElementById('filtroPeriodo')?.value;
+        const periodo = document.getElementById('dashboardPeriodoFilter')?.value;
         if (periodo && periodo !== 'all') {
             const diasAtras = parseInt(periodo);
             const cutoffDate = new Date();
@@ -3658,12 +3938,12 @@
             demandasBase = demandasBase.filter(d => new Date(d.dataCriacao) >= cutoffDate);
         }
         
-        const categoria = document.getElementById('filtroCategoria')?.value;
+        const categoria = document.getElementById('dashboardCategoriaFilter')?.value;
         if (categoria && categoria !== 'todas') {
             demandasBase = demandasBase.filter(d => d.categoria === categoria);
         }
         
-        const prioridade = document.getElementById('filtroPrioridade')?.value;
+        const prioridade = document.getElementById('dashboardPrioridadeFilter')?.value;
         if (prioridade && prioridade !== 'todas') {
             demandasBase = demandasBase.filter(d => d.prioridade === prioridade);
         }
@@ -3673,7 +3953,7 @@
 
     // Atualizar dashboard
     function atualizarDashboard() {
-        const demandasFiltradas = getDemandasFiltradas();
+        const demandasFiltradas = getDemandasFiltradasDashboard();
         const totalDemandas = demandasFiltradas.length;
         const pendentes = demandasFiltradas.filter(d => d.status === 'pendente' || d.status === 'finalizado_pendente_aprovacao' || d.status === 'reprovada' || d.status === 'atribuida_pendente_aceitacao').length;
         const atrasadas = demandasFiltradas.filter(d => {
@@ -3685,11 +3965,110 @@
         const aprovadas = demandasFiltradas.filter(d => d.status === 'aprovada').length;
         const rotina = demandasFiltradas.filter(d => d.isRotina).length;
 
-        animateValue('totalDemandas', totalDemandas);
-        animateValue('pendentesCount', pendentes);
-        animateValue('atrasadasCount', atrasadas);
-        animateValue('aprovadasCount', aprovadas);
-        animateValue('rotinaCount', rotina);
+        // Atualizar cards do dashboard
+        animateValue('totalDemandasCard', totalDemandas);
+        animateValue('pendentesCard', pendentes);
+        animateValue('atrasadasCard', atrasadas);
+        animateValue('aprovadasCard', aprovadas);
+        animateValue('rotinaCard', rotina);
+        
+        // Atualizar percentuais
+        if (totalDemandas > 0) {
+            document.getElementById('totalPercentual').textContent = '100%';
+            document.getElementById('totalProgress').style.width = '100%';
+            
+            const pendentesPercent = Math.round((pendentes / totalDemandas) * 100);
+            document.getElementById('pendentesPercentual').textContent = `${pendentesPercent}%`;
+            document.getElementById('pendentesProgress').style.width = `${pendentesPercent}%`;
+            
+            const atrasadasPercent = Math.round((atrasadas / totalDemandas) * 100);
+            document.getElementById('atrasadasPercentual').textContent = `${atrasadasPercent}%`;
+            document.getElementById('atrasadasProgress').style.width = `${atrasadasPercent}%`;
+            
+            const aprovadasPercent = Math.round((aprovadas / totalDemandas) * 100);
+            document.getElementById('aprovadasPercentual').textContent = `${aprovadasPercent}%`;
+            document.getElementById('aprovadasProgress').style.width = `${aprovadasPercent}%`;
+            
+            const rotinaPercent = Math.round((rotina / totalDemandas) * 100);
+            document.getElementById('rotinaPercentual').textContent = `${rotinaPercent}%`;
+            document.getElementById('rotinaProgress').style.width = `${rotinaPercent}%`;
+        } else {
+            document.getElementById('totalPercentual').textContent = '0%';
+            document.getElementById('totalProgress').style.width = '0%';
+            document.getElementById('pendentesPercentual').textContent = '0%';
+            document.getElementById('pendentesProgress').style.width = '0%';
+            document.getElementById('atrasadasPercentual').textContent = '0%';
+            document.getElementById('atrasadasProgress').style.width = '0%';
+            document.getElementById('aprovadasPercentual').textContent = '0%';
+            document.getElementById('aprovadasProgress').style.width = '0%';
+            document.getElementById('rotinaPercentual').textContent = '0%';
+            document.getElementById('rotinaProgress').style.width = '0%';
+        }
+        
+        // Atualizar tabela de demandas recentes
+        atualizarTabelaDemandasRecentes(demandasFiltradas);
+    }
+
+    // Atualizar tabela de demandas recentes
+    function atualizarTabelaDemandasRecentes(demandas) {
+        const tableBody = document.getElementById('recentDemandasTableBody');
+        if (!tableBody) return;
+        
+        // Ordenar por data de criação (mais recentes primeiro)
+        const demandasOrdenadas = [...demandas].sort((a, b) => {
+            return new Date(b.dataCriacao) - new Date(a.dataCriacao);
+        });
+        
+        // Limitar a 10 demandas mais recentes
+        const demandasRecentes = demandasOrdenadas.slice(0, 10);
+        
+        if (demandasRecentes.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">Nenhuma demanda encontrada</td></tr>';
+            return;
+        }
+        
+        tableBody.innerHTML = demandasRecentes.map(demanda => {
+            const dataLimite = new Date(demanda.dataLimite);
+            const hoje = new Date();
+            const isAtrasada = dataLimite < hoje && demanda.status !== 'aprovada';
+            
+            let statusClass = '';
+            let statusText = demanda.status.replace(/_/g, ' ');
+            
+            if (demanda.status === 'pendente' || demanda.status === 'atribuida_pendente_aceitacao') {
+                statusClass = 'pendente';
+            } else if (demanda.status === 'aprovada') {
+                statusClass = 'aprovada';
+            } else if (isAtrasada) {
+                statusClass = 'atrasada';
+            }
+            
+            let prioridadeClass = '';
+            if (demanda.prioridade === 'Importante') {
+                prioridadeClass = 'importante';
+            } else if (demanda.prioridade === 'Média') {
+                prioridadeClass = 'media';
+            } else if (demanda.prioridade === 'Relevante') {
+                prioridadeClass = 'relevante';
+            }
+            
+            return `
+                <tr>
+                    <td>${demanda.tag || ''}</td>
+                    <td>${demanda.nomeDemanda || demanda.descricao || ''}</td>
+                    <td>${demanda.nomeFuncionario || ''}</td>
+                    <td>${demanda.categoria || ''}</td>
+                    <td><span class="priority-badge ${prioridadeClass}">${demanda.prioridade || ''}</span></td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${dataLimite.toLocaleDateString('pt-BR')}</td>
+                    <td>
+                        <button onclick="verDetalhes(${demanda.id})" title="Ver Detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     // Animar valor
@@ -3810,7 +4189,7 @@
     function atualizarGraficos() {
         if (!charts.status) return;
 
-        const demandasFiltradas = getDemandasFiltradas();
+        const demandasFiltradas = getDemandasFiltradasDashboard();
 
         const statusData = [
             demandasFiltradas.filter(d => d.status === 'pendente' || d.status === 'atribuida_pendente_aceitacao').length,
@@ -5353,20 +5732,9 @@
         }, 5000);
     }
 
-    // Resetar filtros
-    function resetFilters() {
-        document.getElementById('filtroFuncionario').value = 'todos';
-        document.getElementById('filtroPeriodo').value = '7';
-        document.getElementById('filtroCategoria').value = 'todas';
-        document.getElementById('filtroPrioridade').value = 'todas';
-        
-        filtrarDashboard();
-        showNotification('info', 'Filtros Resetados', 'Todos os filtros foram resetados');
-    }
-
     // Filtrar dashboard
     function filtrarDashboard() {
-        filtroFuncionarioAtual = document.getElementById('filtroFuncionario').value;
+        filtroFuncionarioAtual = document.getElementById('dashboardFuncionarioFilter').value;
         atualizarDashboard();
         atualizarGraficos();
     }
@@ -6051,23 +6419,6 @@
         atualizarMindmap();
     }
 
-    // Resetar mapa mental
-    function resetMindmap() {
-        atualizarMindmap();
-        showNotification('info', 'Mapa Mental Resetado', 'O layout do mapa mental foi resetado.');
-    }
-
-    // Salvar layout do mapa mental
-    function saveMindmapLayout() {
-        // Implementar salvamento do layout do mapa mental
-        showNotification('info', 'Layout Salvo', 'O layout do mapa mental foi salvo.');
-    }
-
-    // Carregar layout do mapa mental
-    function carregarMindmapLayout() {
-        // Implementar carregamento do layout do mapa mental
-    }
-
     // Tornar elemento arrastável
     function makeDraggable(element) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -6598,6 +6949,24 @@
             document.body.removeChild(a);
             showNotification('success', 'Gráfico Baixado', `O gráfico de ${chartType} foi baixado.`);
         }
+    }
+
+    // Função para atualizar demandas recentes
+    function refreshRecentDemandas() {
+        const demandasFiltradas = getDemandasFiltradasDashboard();
+        atualizarTabelaDemandasRecentes(demandasFiltradas);
+        showNotification('info', 'Atualizado', 'A lista de demandas recentes foi atualizada.');
+    }
+
+    // Função para exportar demandas recentes
+    function exportRecentDemandas() {
+        const demandasFiltradas = getDemandasFiltradasDashboard();
+        if (demandasFiltradas.length === 0) {
+            showNotification('warning', 'Sem Dados', 'Não há demandas para exportar.');
+            return;
+        }
+        
+        exportarJSON(demandasFiltradas);
     }
 </script>
 
